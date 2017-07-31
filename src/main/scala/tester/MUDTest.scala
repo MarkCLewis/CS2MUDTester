@@ -1,6 +1,10 @@
 package tester
 
 import java.net.Socket
+import java.io.{BufferedReader,InputStreamReader,PrintStream}
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import akka.actor.{Props,ActorSystem}
 
 /**
  * This application will test a networked MUD implementation. The user needs to provide connection
@@ -21,9 +25,13 @@ object MUDTest extends App {
   
   // Figure out which commands we are testing.
 
-  // TODO - this will make a connection
   val sock = new Socket(flagsAndValues("-host"), flagsAndValues("-port").toInt)
+  val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
+  val out = new PrintStream(sock.getOutputStream())
   
+  val system = ActorSystem("MUD")
+  val name = "MUDTESTPLAYER"
+  val player = system.actorOf(Props(MUDTestPlayer(name,sock,in,out)),name)
 }
 
 // TODO - need an abstraction for commands.
