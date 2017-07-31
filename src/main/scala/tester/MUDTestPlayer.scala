@@ -13,7 +13,8 @@ object MUDTestPlayer {
   case object ReadInput // MUD -> MUDTest
   case class WriteOutput(s:String) // MUDTest -> MUD
   case class TESTWriteOutput(s:String)
-  case object ChangeRoom
+  case object TakeAction
+  case class ChangeRoom(exit:String)
   
   def apply(n:String,s:Socket,i:BufferedReader,o:PrintStream):MUDTestPlayer = {
     new MUDTestPlayer(n,s,i,o)
@@ -28,7 +29,7 @@ class MUDTestPlayer private(name:String,
   val currGameState = MUDTestPlayer.GameState(Array[String](),Array[String](),Array[String]())
   implicit val ec = context.system.dispatcher
   context.system.scheduler.schedule(0 seconds,100 millis,self,MUDTestPlayer.ReadInput)
-  context.system.scheduler.schedule(1 seconds,1000 millis,self,MUDTestPlayer.ChangeRoom)
+  context.system.scheduler.schedule(1 seconds,1000 millis,self,MUDTestPlayer.TakeAction)
   self ! MUDTestPlayer.WriteOutput(name)
   
   // Actor Receive
@@ -36,15 +37,18 @@ class MUDTestPlayer private(name:String,
     case MUDTestPlayer.ReadInput => { // MUD -> MUDTest
       if(in.ready()) processInput(in.readLine())
     }
-    case MUDTestPlayer.WriteOutput(s:String) => { // MUDTest -> MUD
+    case MUDTestPlayer.WriteOutput(s) => { // MUDTest -> MUD
       out.println(s)
     }
-    case MUDTestPlayer.ChangeRoom => {
+    case MUDTestPlayer.TakeAction => {
       if(currGameState.exits.length>0) {
         val exit = currGameState.exits(util.Random.nextInt(currGameState.exits.length))
-        self ! MUDTestPlayer.TESTWriteOutput(exit)
-        self ! MUDTestPlayer.WriteOutput(exit)
+        self ! MUDTestPlayer.ChangeRoom(exit)
       }
+    }
+    case MUDTestPlayer.ChangeRoom(exit) => {
+      self ! MUDTestPlayer.TESTWriteOutput(exit)
+      self ! MUDTestPlayer.WriteOutput(exit)
     }
     case MUDTestPlayer.TESTWriteOutput(s:String) => println(s)
     case _ =>
