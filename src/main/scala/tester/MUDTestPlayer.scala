@@ -8,7 +8,7 @@ import scala.collection.mutable.Map
 import scala.concurrent.Future
 
 object MUDTestPlayer {
-  case class GameState(var players:Array[String],var items:Array[String],var exits:Array[String])
+  case class GameState(val players:Seq[String],val items:Seq[String],val exits:Seq[String])
   
   case object ReadInput // MUD -> MUDTest
   case class WriteOutput(s:String) // MUDTest -> MUD
@@ -26,7 +26,7 @@ class MUDTestPlayer private(name:String,
     private val in:BufferedReader,
     private val out:PrintStream) extends Actor {
   
-  val currGameState = MUDTestPlayer.GameState(Array[String](),Array[String](),Array[String]())
+  private var currGameState = MUDTestPlayer.GameState(Array[String](),Array[String](),Array[String]())
   implicit val ec = context.system.dispatcher
   context.system.scheduler.schedule(0 seconds,100 millis,self,MUDTestPlayer.ReadInput)
   context.system.scheduler.schedule(1 seconds,1000 millis,self,MUDTestPlayer.TakeAction)
@@ -68,9 +68,9 @@ class MUDTestPlayer private(name:String,
   def loadToCurrGS(toks:Array[Array[String]]) {
     toks.foreach(line => {
       line(0) match {
-        case "Players:" => currGameState.players = line.drop(1)
-        case "Items:" => currGameState.items = line.drop(1)
-        case "Exits:" => currGameState.exits = line.drop(1)
+        case "Players:" => currGameState = currGameState.copy(players = line.drop(1))
+        case "Items:" => currGameState = currGameState.copy(items = line.drop(1))
+        case "Exits:" => currGameState = currGameState.copy(exits = line.drop(1))
         case _ =>
       }
     })

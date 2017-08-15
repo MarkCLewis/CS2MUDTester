@@ -24,6 +24,7 @@ object MUDTest extends App {
   if(allRequired.exists(!_)) sys.exit(1)
   
   // Figure out which commands we are testing.
+  val commands = Command.readConfig(flagsAndValues)
 
   val sock = new Socket(flagsAndValues("-host"), flagsAndValues("-port").toInt)
   val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
@@ -34,5 +35,4 @@ object MUDTest extends App {
   val player = system.actorOf(Props(MUDTestPlayer(name,sock,in,out)),name)
 }
 
-// TODO - need an abstraction for commands.
 // TODO - need an abstraction for connections.
