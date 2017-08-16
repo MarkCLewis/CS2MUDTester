@@ -11,22 +11,38 @@ import akka.actor.{Props,ActorSystem}
  * information, host and port, as well as information about what commands are to be tested.
  */
 object MUDTest extends App {
-  val flagsAndValues = args.zip(args.tail).foldLeft(Map[String, String]()) { (m, t) =>
-    if(t._1(0) == '-') m + (t._1 -> t._2) else m
+  val flagsAndValues = args.zip(args.tail).foldLeft(Map[String,Option[String]]()) { (m, t) =>
+    if(t._1(0) == '-' && t._2.isEmpty) {
+      m + (t._1 -> None)
+    } else if(t._1(0) == '-' && t._2(0) != '-') {
+      m + (t._1 -> Some(t._2))
+    } else if(t._1(0) == '-') {
+      m + (t._1 -> None)
+    } else {
+      m
+    }
   }
-  val requiredFlags = "-host -port".split(" ")
+  val requiredFlags = "-host -port -config".split(" ")
   val allRequired = for(flag <- requiredFlags) yield {
-    if(!flagsAndValues.contains(flag)) {
+    if(flagsAndValues.contains(flag)) {
+      flagsAndValues(flag) match {
+        case Some(value) => true
+        case None => {
+          println("Must give a value for " + flag + ".")
+          false
+        }
+      }
+    } else {
       println(flag + " is a required setting.")
       false
-    } else true
+    }
   }
   if(allRequired.exists(!_)) sys.exit(1)
   
   // Figure out which commands we are testing.
   val commands = Command.readConfig(flagsAndValues)
 
-  val sock = new Socket(flagsAndValues("-host"), flagsAndValues("-port").toInt)
+  val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("-1").toInt)
   val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
   val out = new PrintStream(sock.getOutputStream())
   
