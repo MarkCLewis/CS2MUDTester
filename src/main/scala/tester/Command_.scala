@@ -7,9 +7,9 @@ abstract class Command_ {
   val cType:String
   val cEnabled:Boolean
   val cArguments:Array[String]
-  def runCommand(out:PrintStream,in:BufferedReader,gs:GameState):Either[String,GameState]
+  def runCommand(out:PrintStream,in:BufferedReader,gs:MUDTestPlayer.GameState):Either[String,MUDTestPlayer.GameState]
   
-  final def buildCommand(gs:GameState):String = {
+  final def buildCommand(gs:MUDTestPlayer.GameState):String = {
     cName + " " + cArguments.map(arg => {
       arg match {
         case "item" => gs.items(util.Random.nextInt(gs.items.length))

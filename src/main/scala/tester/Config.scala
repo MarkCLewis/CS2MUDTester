@@ -9,7 +9,7 @@ class LookCommand(cN:String,cT:String,cE:Boolean,cAs:Array[String]) extends Comm
   val cType = cT
   val cEnabled = cE
   val cArguments = cAs
-  def runCommand(out:PrintStream,in:BufferedReader,gs:GameState):Either[String,GameState] = {
+  def runCommand(out:PrintStream,in:BufferedReader,gs:MUDTestPlayer.GameState):Either[String,MUDTestPlayer.GameState] = {
     val command = buildCommand(gs)
     // print command
     // print look command
@@ -24,7 +24,7 @@ class InventoryCommand(cN:String,cT:String,cE:Boolean,cAs:Array[String]) extends
   val cType = cT
   val cEnabled = cE
   val cArguments = cAs
-  def runCommand(out:PrintStream,in:BufferedReader,gs:GameState):Either[String,GameState] = {
+  def runCommand(out:PrintStream,in:BufferedReader,gs:MUDTestPlayer.GameState):Either[String,MUDTestPlayer.GameState] = {
     val command = buildCommand(gs)
     // print command
     // print inventory command
@@ -39,7 +39,7 @@ class SimpleCommand(cN:String,cT:String,cE:Boolean,cAs:Array[String]) extends Co
   val cType = cT
   val cEnabled = cE
   val cArguments = cAs
-  def runCommand(out:PrintStream,in:BufferedReader,gs:GameState):Either[String,GameState] = {
+  def runCommand(out:PrintStream,in:BufferedReader,gs:MUDTestPlayer.GameState):Either[String,MUDTestPlayer.GameState] = {
     val command = buildCommand(gs)
     // print command
     Right(gs)
