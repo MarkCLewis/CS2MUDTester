@@ -4,6 +4,18 @@ import java.io.PrintStream
 import java.io.BufferedReader
 import scala.xml.XML
 
+/*
+ * XML format stuff
+ * 
+ * Attributes
+ * name - the command that the user would type in
+ * output - specifies the type of output that should be parsed after the command is given. "room", "inventory"
+ * 
+ * Content tags
+ * argument - these come in order and specify the type
+ * 		type - exit, item, occupant, player
+ */
+
 object Command {
   def readConfig(flags: Map[String, String]): Seq[Command] = {
     val configFile = if(flags.contains("-config")) {
