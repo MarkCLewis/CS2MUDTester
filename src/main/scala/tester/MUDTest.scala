@@ -11,7 +11,7 @@ import akka.actor.{Props,ActorSystem}
  * information, host and port, as well as information about what commands are to be tested.
  */
 object MUDTest extends App {
-  val flagsAndValues = args.zip(args.tail).foldLeft(Map[String,Option[String]]()) { (m, t) =>
+  val flagsAndValues = args.zipAll(args.tail,"","").foldLeft(Map[String,Option[String]]()) { (m, t) =>
     if(t._1(0) == '-' && t._2.isEmpty) {
       m + (t._1 -> None)
     } else if(t._1(0) == '-' && t._2(0) != '-') {
