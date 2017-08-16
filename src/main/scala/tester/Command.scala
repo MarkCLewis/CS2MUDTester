@@ -17,9 +17,15 @@ import scala.xml.XML
  */
 
 object Command {
-  def readConfig(flags: Map[String, String]): Seq[Command] = {
+  def readConfig(flags: Map[String,Option[String]]): Seq[Command] = {
     val configFile = if(flags.contains("-config")) {
-      flags("-config")
+      flags("-config") match {
+        case Some(value) => value
+        case None => {
+          println("No -config specified, defaulting to config.xml.")
+          "config.xml"
+        }
+      }
     } else {
       println("No -config specified, defaulting to config.xml.")
       "config.xml"
