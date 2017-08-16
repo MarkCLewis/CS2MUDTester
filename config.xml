@@ -2,21 +2,24 @@
 
 <config>
 	<commands>
-		<command name="north" type="movement" output="room" enabled="true"/>
-		<command name="south" type="movement" output="room" enabled="true"/>
-		<command name="east" type="movement" output="room" enabled="true"/>
-		<command name="west" type="movement" output="room" enabled="true"/>
-		<command name="up" type="movement" output="room" enabled="true"/>
-		<command name="down" type="movement" output="room" enabled="true"/>
-		<command name="look" type="info" output="room" enabled="true"/>
-		<command name="get" type="items" output="unparsed" enabled="true">
+		<command name="north" output="room" enabled="true"/>
+		<command name="south" output="room" enabled="true"/>
+		<command name="east" output="room" enabled="true"/>
+		<command name="west" output="room" enabled="true"/>
+		<command name="up" output="room" enabled="true"/>
+		<command name="down" output="room" enabled="true"/>
+		<command name="look" output="room" enabled="true"/>
+		<command name="get" output="unparsed" enabled="true">
 			<argument type="roomItem"/>
 		</command>
-		<command name="drop" type="items" output="unparsed" enabled="true">
+		<command name="drop" output="unparsed" enabled="true">
 			<argument type="invItem"/>
 		</command>
-		<command name="inventory" type="info" output="inventory" enabled="true"/>
-		<command name="exit" type="exit" output="unparsed" enabled="true"/>
+		<command name="inventory" output="inventory" enabled="true"/>
+		<command name="exit" output="terminate" enabled="true"/>
+		<command name="say">
+			<argument type="constant">Hello there!</argument>
+		</command>
 	</commands>
 	
 	<!-- Output formats -->
@@ -31,7 +34,7 @@ Exits: (.+)
 Items: (.+)
 		</roomOutput>
 
-		<roomName group="1" multiline="false"></roomName>
+		<roomName group="1"></roomName>
 		<occupants group="3" separator=", "></occupants>
 		<exits group="4" separator=", "></exits>
 		<items group="5" separator=", "></items>

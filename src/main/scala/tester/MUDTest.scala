@@ -39,8 +39,22 @@ object MUDTest extends App {
   }
   if(allRequired.exists(!_)) sys.exit(1)
   
+  val configFile = if(flagsAndValues.contains("-config")) {
+    flagsAndValues("-config") match {
+      case Some(value) => value
+      case None => {
+        println("-config without file, defaulting to config.xml.")
+        "config.xml"
+      }
+    }
+  } else {
+    println("No -config specified, defaulting to config.xml.")
+    "config.xml"
+  }
+
+  
   // Figure out which commands we are testing.
-  val commands = Command.readConfig(flagsAndValues)
+  val commands = IOConfig(configFile)
 
   val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("-1").toInt)
   val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
