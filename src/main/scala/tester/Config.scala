@@ -62,7 +62,7 @@ object Config {
       cT match {
         case "direction" => new LookCommand(cN,cT,cE,cAs)
       }
-    }).asInstanceOf[Array[Command_]]
+    })
     val enabledCommands = allCommands.filter(_.cEnabled)
     val dirCommands = enabledCommands.filter(_.cType == "direction")
     
@@ -70,6 +70,6 @@ object Config {
   }
 }
 
-class Config private(val dirCommands:Array[Command_]) {
+class Config private(val dirCommands:Seq[Command_]) {
   
 }

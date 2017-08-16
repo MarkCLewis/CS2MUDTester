@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+	<commands>
+		<command name="north" type="movement" output="room" enabled="true"/>
+		<command name="south" type="movement" output="room" enabled="true"/>
+		<command name="east" type="movement" output="room" enabled="true"/>
+		<command name="west" type="movement" output="room" enabled="true"/>
+		<command name="up" type="movement" output="room" enabled="true"/>
+		<command name="down" type="movement" output="room" enabled="true"/>
+		<command name="look" type="info" output="room" enabled="true"/>
+		<command name="get" type="items" output="unparsed" enabled="true">
+			<argument type="roomItem"/>
+		</command>
+		<command name="drop" type="items" output="unparsed" enabled="true">
+			<argument type="invItem"/>
+		</command>
+		<command name="inventory" type="info" output="inventory" enabled="true"/>
+		<command name="exit" type="exit" output="unparsed" enabled="true"/>
+	</commands>
+	
+	<!-- Output formats -->
+	<output>
+		<prompt>&gt;</prompt>
+
+		<roomOutput>
+([^\n]+)
+([.]+?)
+Players: (.+)
+Exits: (.+)
+Items: (.+)
+		</roomOutput>
+
+		<roomName group="1" multiline="false"></roomName>
+		<occupants group="3" separator=", "></occupants>
+		<exits group="4" separator=", "></exits>
+		<items group="5" separator=", "></items>
+	
+		<inventoryOutput>
+Inventory:
+(( +\w+ - [^\n]+\n)*)
+		</inventoryOutput>
+	
+		<invItem group="1" multiline="true"> +(\w+) - .+</invItem>
+	</output>	
+</config>
