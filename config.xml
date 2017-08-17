@@ -24,8 +24,6 @@
 	
 	<!-- Output formats -->
 	<output>
-		<prompt>&gt;</prompt>
-
 		<roomOutput>
 ([^\n]+)
 ([.]+?)

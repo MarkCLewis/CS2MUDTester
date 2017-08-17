@@ -52,8 +52,7 @@ object MUDTest extends App {
     "config.xml"
   }
 
-  
-  // Figure out which commands we are testing.
+  // Read the configuration file
   val commands = IOConfig(configFile)
 
   val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("-1").toInt)

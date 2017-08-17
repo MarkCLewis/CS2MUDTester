@@ -5,7 +5,6 @@ import scala.xml.XML
 
 case class IOConfig(
     commands: Seq[Command], 
-    promptFormat: String, 
     roomOutput: Regex, 
     inventoryOutput: Regex,
     roomName: IOElement,
@@ -33,14 +32,13 @@ object IOConfig {
         Nil
       }
     }
-    val prompt = (xml \ "output" \ "prompt").text.trim
     val roomOutput = (xml \ "output" \ "roomOutput").text.trim
     val inventoryOutput = (xml \ "output" \ "inventoryOutput").text.trim
     val roomName = parseElement(xml \ "output" \ "roomName")
     val occupants = (xml \ "output" \ "occupants").headOption.map(parseElement)
     val exits = parseElement(xml \ "output" \ "exits")
     val items = parseElement(xml \ "output" \ "items")
-    new IOConfig(commands, prompt, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items)
+    new IOConfig(commands, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items)
   }
   
   def parseElement(n: xml.NodeSeq): IOElement = {
