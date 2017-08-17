@@ -8,7 +8,7 @@ import scala.collection.mutable.Map
 import scala.concurrent.Future
 
 object MUDTestPlayer {
-  case class GameState(val inventory: Seq[String], val players:Seq[String],val roomItems:Seq[String],val exits:Seq[String])
+  case class GameState(roomName: String, val inventory: Seq[String], val players:Seq[String],val roomItems:Seq[String],val exits:Seq[String])
   
   case object ReadInput // MUD -> MUDTest
   case class WriteOutput(s:String) // MUDTest -> MUD
@@ -26,7 +26,7 @@ class MUDTestPlayer private(name:String,
     private val in:BufferedReader,
     private val out:PrintStream) extends Actor {
   
-  private var currGameState = MUDTestPlayer.GameState(Nil, Nil, Nil, Nil)
+  private var currGameState = MUDTestPlayer.GameState("", Nil, Nil, Nil, Nil)
   implicit val ec = context.system.dispatcher
   context.system.scheduler.schedule(0 seconds,100 millis,self,MUDTestPlayer.ReadInput)
   context.system.scheduler.schedule(1 seconds,1000 millis,self,MUDTestPlayer.TakeAction)

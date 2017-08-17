@@ -12,7 +12,7 @@ abstract class Command_ {
   final def buildCommand(gs:MUDTestPlayer.GameState):String = {
     cName + " " + cArguments.map(arg => {
       arg match {
-        case "item" => gs.items(util.Random.nextInt(gs.items.length))
+        case "item" => gs.roomItems(util.Random.nextInt(gs.roomItems.length))
         case "player" => gs.players(util.Random.nextInt(gs.players.length))
         case "message" => "Hello World!"
       }

@@ -10,9 +10,24 @@ case class IOConfig(
     roomName: IOElement,
     occupants: Option[IOElement],
     exits: IOElement,
-    items: IOElement)
+    items: IOElement,
+    invItems: IOElement)
 
-case class IOElement(groupNumber: Int, multiline: Boolean, separator:Option[String], pattern: Regex)
+case class IOElement(groupNumber: Int, separator:Option[String], pattern: Regex) {
+  def parseSingle(m: Regex.Match): String = {
+    m.group(groupNumber)
+  }
+  def parseSeq(m: Regex.Match): Seq[String] = {
+    if(separator.isEmpty) throw new UnsupportedOperationException("No separator for element with parseSeq.")
+    val str = m.group(groupNumber)
+    str.split(separator.get).map { part =>
+      pattern.findFirstMatchIn(part) match {
+        case None => throw new IllegalArgumentException("Part in parseSeq didn't match pattern.")
+        case Some(m) => m.group(1)
+      }
+    }
+  }
+}
 
 object IOConfig {
   def apply(configFile: String): IOConfig = {
@@ -38,15 +53,15 @@ object IOConfig {
     val occupants = (xml \ "output" \ "occupants").headOption.map(parseElement)
     val exits = parseElement(xml \ "output" \ "exits")
     val items = parseElement(xml \ "output" \ "items")
-    new IOConfig(commands, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items)
+    val invItems = parseElement(xml \ "output" \ "invItems")
+    new IOConfig(commands, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items, invItems)
   }
   
   def parseElement(n: xml.NodeSeq): IOElement = {
     val group = (n \ "@group").text.trim.toInt
-    val multiline = (n \ "@multiline").headOption.map(_.text.toBoolean).getOrElse(false)
     val separator = (n \ "@separator").headOption.map(_.text)
     val text = n.text
     val pattern = if(text.isEmpty) ".*" else text
-    IOElement(group, multiline, separator, pattern.r)
+    IOElement(group, separator, pattern.r)
   }
 }

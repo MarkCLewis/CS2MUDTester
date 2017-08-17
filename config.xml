@@ -26,22 +26,22 @@
 	<output>
 		<roomOutput>
 ([^\n]+)
-([.]+?)
+(.+?)
 Players: (.+)
 Exits: (.+)
-Items: (.+)
+(Items: (.+))?
 		</roomOutput>
 
 		<roomName group="1"></roomName>
 		<occupants group="3" separator=", "></occupants>
 		<exits group="4" separator=", "></exits>
-		<items group="5" separator=", "></items>
+		<items group="6" separator=", "></items>
 	
 		<inventoryOutput>
 Inventory:
 (( +\w+ - [^\n]+\n)*)
 		</inventoryOutput>
 	
-		<invItem group="1" multiline="true"> +(\w+) - .+</invItem>
+		<invItem group="1" separator="\n"> +(\w+) - .+</invItem>
 	</output>	
 </config>

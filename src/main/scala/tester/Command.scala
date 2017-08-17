@@ -3,6 +3,27 @@ package tester
 import java.io.PrintStream
 import java.io.BufferedReader
 import scala.xml.XML
+import scala.util.matching.Regex
+import scala.annotation.tailrec
+
+object Command {
+  def sendCommand(out: PrintStream, name: String, args: Seq[CommandArgument], currentState: MUDTestPlayer.GameState): Unit = {
+    val com = name + " " + args.map(_(currentState)).mkString(" ")
+    out.println(com)
+  }
+  def readToMatch(in: BufferedReader, regex: Regex): Either[String, Regex.Match] = {
+    @tailrec
+    def helper(input: String, cnt: Int): Either[String, Regex.Match] = {
+      if(cnt > 1000) Left("Couldn't match room output:\n" + input)
+      else {
+    		val input2 = input+in.readLine()
+    	  val om = regex.findFirstMatchIn(input2)
+    	  if(om.isEmpty) helper(input2, cnt+1) else Right(om.get)
+      }
+    }
+    helper("", 0)
+  }
+}
 
 sealed trait Command {
   def name: String
@@ -12,20 +33,36 @@ sealed trait Command {
 case class RoomParsing(val name: String, args: Seq[CommandArgument]) extends Command {
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
       currentState: MUDTestPlayer.GameState): Either[String, MUDTestPlayer.GameState] = {
-    ???
+    Command.sendCommand(out, name, args, currentState)
+    Command.readToMatch(in, config.roomOutput) match {
+      case Left(message) => Left(message)
+      case Right(m) =>
+        val name = config.roomName.parseSingle(m)
+        val exits = config.exits.parseSeq(m)
+        val items = config.items.parseSeq(m)
+        val occupants = config.occupants.map(_.parseSeq(m)).getOrElse(Seq.empty)
+        Right(currentState.copy(roomName = name, players = occupants, roomItems = items, exits = exits))
+    }
   }
 }
 
 case class Unparsed(val name: String, args: Seq[CommandArgument]) extends Command {
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
       currentState: MUDTestPlayer.GameState): Either[String, MUDTestPlayer.GameState] = {
-    ???
+    Command.sendCommand(out, name, args, currentState)
+    Right(currentState)
   }
 }
 
 case class InvParsing(val name: String, args: Seq[CommandArgument]) extends Command {
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
       currentState: MUDTestPlayer.GameState): Either[String, MUDTestPlayer.GameState] = {
-    ???
+    Command.sendCommand(out, name, args, currentState)
+    Command.readToMatch(in, config.inventoryOutput) match {
+      case Left(message) => Left(message)
+      case Right(m) =>
+        val invItems = config.invItems.parseSeq(m)
+        Right(currentState.copy(inventory = invItems))
+    }
   }
 }
