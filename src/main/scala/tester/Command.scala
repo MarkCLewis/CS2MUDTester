@@ -9,6 +9,7 @@ import scala.annotation.tailrec
 object Command {
   def sendCommand(out: PrintStream, name: String, args: Seq[CommandArgument], currentState: MUDTestPlayer.GameState): Unit = {
     val com = name + " " + args.map(_(currentState)).mkString(" ")
+    println("Sending "+com)
     out.println(com)
   }
   def readToMatch(in: BufferedReader, regex: Regex): Either[String, Regex.Match] = {
@@ -16,9 +17,12 @@ object Command {
     def helper(input: String, cnt: Int): Either[String, Regex.Match] = {
       if(cnt > 1000) Left("Couldn't match room output:\n" + input)
       else {
-    		val input2 = input+in.readLine()
-    	  val om = regex.findFirstMatchIn(input2)
-    	  if(om.isEmpty) helper(input2, cnt+1) else Right(om.get)
+    		val input2 = input+"\n"+in.readLine()
+    		if(in.ready()) helper(input2, cnt) else {
+      		println("Input is "+input2)
+      	  val om = regex.findFirstMatchIn(input2)
+      	  if(om.isEmpty) helper(input2, cnt+1) else Right(om.get)
+    		}
       }
     }
     helper("", 0)
@@ -26,11 +30,15 @@ object Command {
 }
 
 sealed trait Command {
-  def name: String
+	val isTerminator: Boolean
+	val isMovement: Boolean
+  val name: String
+  val args: Seq[CommandArgument]
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, currentState: MUDTestPlayer.GameState): Either[String, MUDTestPlayer.GameState]
 }
 
-case class RoomParsing(val name: String, args: Seq[CommandArgument]) extends Command {
+case class RoomParsing(val name: String, args: Seq[CommandArgument], isMovement: Boolean) extends Command {
+	val isTerminator = false
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
       currentState: MUDTestPlayer.GameState): Either[String, MUDTestPlayer.GameState] = {
     Command.sendCommand(out, name, args, currentState)
@@ -46,7 +54,8 @@ case class RoomParsing(val name: String, args: Seq[CommandArgument]) extends Com
   }
 }
 
-case class Unparsed(val name: String, args: Seq[CommandArgument]) extends Command {
+case class Unparsed(val name: String, args: Seq[CommandArgument], isTerminator: Boolean) extends Command {
+	val isMovement = false
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
       currentState: MUDTestPlayer.GameState): Either[String, MUDTestPlayer.GameState] = {
     Command.sendCommand(out, name, args, currentState)
@@ -55,6 +64,8 @@ case class Unparsed(val name: String, args: Seq[CommandArgument]) extends Comman
 }
 
 case class InvParsing(val name: String, args: Seq[CommandArgument]) extends Command {
+	val isTerminator = false
+	val isMovement = false
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
       currentState: MUDTestPlayer.GameState): Either[String, MUDTestPlayer.GameState] = {
     Command.sendCommand(out, name, args, currentState)

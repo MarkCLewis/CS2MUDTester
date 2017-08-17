@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <config>
+	<numCommandsToGive>10</numCommandsToGive>
+	
 	<commands>
-		<command name="north" output="room" enabled="true"/>
-		<command name="south" output="room" enabled="true"/>
-		<command name="east" output="room" enabled="true"/>
-		<command name="west" output="room" enabled="true"/>
-		<command name="up" output="room" enabled="true"/>
-		<command name="down" output="room" enabled="true"/>
+		<command name="north" output="room" movement="true" enabled="true"/>
+		<command name="south" output="room" movement="true" enabled="true"/>
+		<command name="east" output="room" movement="true" enabled="true"/>
+		<command name="west" output="room" movement="true" enabled="true"/>
+		<command name="up" output="room" movement="true" enabled="true"/>
+		<command name="down" output="room" movement="true" enabled="true"/>
 		<command name="look" output="room" enabled="true"/>
 		<command name="get" output="unparsed" enabled="true">
 			<argument type="roomItem"/>
@@ -26,22 +28,22 @@
 	<output>
 		<roomOutput>
 ([^\n]+)
-(.+?)
-Players: (.+)
-Exits: (.+)
-(Items: (.+))?
+(.+?)(
+Players: (.+))?
+Exits: (.+)(
+Items: (.+))?
 		</roomOutput>
 
 		<roomName group="1"></roomName>
-		<occupants group="3" separator=", "></occupants>
-		<exits group="4" separator=", "></exits>
-		<items group="6" separator=", "></items>
+		<occupants group="4" separator=", "></occupants>
+		<exits group="5" separator=", "></exits>
+		<items group="7" separator=", "></items>
 	
 		<inventoryOutput>
 Inventory:
-(( +\w+ - [^\n]+\n)*)
+(\s+Nothing|((\t\w+ - [^\n]+\n?)+))
 		</inventoryOutput>
 	
-		<invItem group="1" separator="\n"> +(\w+) - .+</invItem>
+		<invItems group="2" separator="\n">\t(\w+) - .+</invItems>
 	</output>	
 </config>
