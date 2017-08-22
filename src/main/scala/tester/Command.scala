@@ -9,7 +9,7 @@ import scala.annotation.tailrec
 object Command {
   def sendCommand(out: PrintStream, name: String, args: Seq[CommandArgument], currentState: MUDTestPlayer.GameState): Unit = {
     val com = name + " " + args.map(_(currentState)).mkString(" ")
-    println("Sending "+com)
+    //println("Sending "+com)
     out.println(com)
   }
   def readToMatch(in: BufferedReader, regex: Regex): Either[String, Regex.Match] = {
@@ -19,7 +19,6 @@ object Command {
       else {
     		val input2 = input+"\n"+in.readLine()
     		if(in.ready()) helper(input2, cnt) else {
-      		println("Input is "+input2)
       	  val om = regex.findFirstMatchIn(input2)
       	  if(om.isEmpty) helper(input2, cnt+1) else Right(om.get)
     		}

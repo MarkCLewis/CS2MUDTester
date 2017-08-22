@@ -31,25 +31,29 @@ case class IOConfig(
 
 case class IOElement(groupNumber: Int, separator: Option[String], pattern: Regex) {
   def parseSingle(m: Regex.Match): String = {
-    m.group(groupNumber)
+    val found = m.group(groupNumber)
+    Debug.regexDebugPrint(1,"Looking for output group " + groupNumber + " using pattern " + pattern + ", found \"" + found + "\".")
+    found
   }
   def parseSeq(m: Regex.Match): Seq[String] = {
     if (separator.isEmpty) throw new UnsupportedOperationException("No separator for element with parseSeq.")
     val str = m.group(groupNumber)
-    println(s"str = $str")
+    Debug.regexDebugPrint(2,s"str = $str")
     if (str == null) Seq.empty else {
-      str.split(separator.get).map { part =>
-        println(s"Match $part against $pattern")
+      val found = str.split(separator.get).map { part =>
+        Debug.regexDebugPrint(2,s"Match $part against $pattern")
         pattern.findFirstMatchIn(part) match {
           case None => throw new IllegalArgumentException("Part in parseSeq didn't match pattern.")
           case Some(m) => m.group(1)
         }
       }
+      Debug.regexDebugPrint(1,"Looking for output group " + groupNumber + " using pattern " + pattern + ", found \"" + found.mkString("\", \"") + "\".")
+      found
     }
   }
 }
 
-object IOConfig {
+object IOConfig {  
   def apply(configFile: String): IOConfig = {
     val xml = XML.loadFile(configFile)
     val numCommandsToGive = (xml \ "numCommandsToGive").text.toInt
@@ -70,7 +74,7 @@ object IOConfig {
         Nil
       }
     }
-    println(commands)
+    //println(commands)
     val roomOutput = (xml \ "output" \ "roomOutput").text.trim
     val inventoryOutput = (xml \ "output" \ "inventoryOutput").text.trim
     val roomName = parseElement(xml \ "output" \ "roomName")
@@ -78,7 +82,19 @@ object IOConfig {
     val exits = parseElement(xml \ "output" \ "exits")
     val items = parseElement(xml \ "output" \ "items")
     val invItems = parseElement(xml \ "output" \ "invItems")
-    new IOConfig(numCommandsToGive, commands, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items, invItems)
+    Debug.regexDebugLevel = (((xml \ "debug") \ "regexDebug") \ "@level").text.trim.toInt
+    Debug.playerDebugLevel = (((xml \ "debug") \ "playerDebug") \ "@level").text.trim.toInt
+    Debug.roomDebugLevel = (((xml \ "debug") \ "roomDebug") \ "@level").text.trim.toInt
+    Debug.monitoredRooms = ((((xml \ "debug") \ "roomDebug") \ "monitoredRooms") \ "monitoredRoom").map(_.text.trim)
+
+    try {
+      new IOConfig(numCommandsToGive, commands, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items, invItems)
+    } catch {
+      case e: java.util.regex.PatternSyntaxException => {
+        println("Illegal Regex syntax:\n " + e.getDescription + "\n" + e.getPattern)
+        sys.exit(1)
+      }
+    }
   }
 
   def parseElement(n: xml.NodeSeq): IOElement = {
@@ -88,4 +104,5 @@ object IOConfig {
     val pattern = if (text.isEmpty) "(.*)" else text
     IOElement(group, separator, pattern.r)
   }
+  
 }

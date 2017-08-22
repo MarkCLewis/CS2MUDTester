@@ -30,7 +30,6 @@ class MUDTestPlayer private (name: String,
   // Actor Receive
   def receive = {
     case MUDTestPlayer.Connect =>
-      println("Connecting")
       // Tell name for login
       out.println(name)
 
@@ -44,26 +43,29 @@ class MUDTestPlayer private (name: String,
           val occupants = config.occupants.map(_.parseSeq(m)).getOrElse(Seq.empty)
           currGameState = currGameState.copy(roomName = name, players = occupants, roomItems = items, exits = exits)
       }
-      println(currGameState)
+      //println(currGameState)
 
       implicit val ec = context.system.dispatcher
       context.system.scheduler.schedule(1 seconds, 1000 millis, self, MUDTestPlayer.TakeAction)
 
     case MUDTestPlayer.TakeAction =>
-      println("Issuing command " + commandCount)
+      //println("Issuing command " + commandCount)
       commandCount += 1
       if (commandCount > config.numCommandsToGive) {
         config.exitCommand().runCommand(out, in, config, currGameState)
         context.stop(self)
       } else {
         val command = config.randomValidCommand(currGameState)
-        println(command)
+        //println(command)
         command.runCommand(out, in, config, currGameState) match {
           case Left(message) =>
-            println(message)
+            Debug.playerDebugPrint(1,"Unsuccessfull " + command.name + " command.")
+            Debug.roomDebugPrint(1,currGameState.roomName,"Unsuccessfull " + command.name + " command in " + currGameState.roomName + " room.")
           case Right(state) =>
+            Debug.playerDebugPrint(1,"Successfull " + command.name + " command.")
+            Debug.roomDebugPrint(1,currGameState.roomName,"Successfull " + command.name + " command in " + currGameState.roomName + " room.")
             currGameState = state
-            println(currGameState)
+            //println(currGameState)
         }
       }
     case _ =>

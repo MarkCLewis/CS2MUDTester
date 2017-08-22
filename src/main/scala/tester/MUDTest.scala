@@ -9,8 +9,17 @@ import akka.actor.{ Props, ActorSystem }
 /**
  * This application will test a networked MUD implementation. The user needs to provide connection
  * information, host and port, as well as information about what commands are to be tested.
+ * 
+ * -host
+ * -port
+ * -config
+ * (-stress)
+ * 
+ * -nonnetworked
  */
 object MUDTest extends App {
+  println("args: " + args.mkString(", "))
+  
   val defaultHost = "localhost"
   val defaultPort = "4000"
   val defaultConfig = "config.xml"
@@ -58,13 +67,37 @@ object MUDTest extends App {
 
   // Read the configuration file
   val config = IOConfig(configFile)
-
-  val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
-  val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
-  val out = new PrintStream(sock.getOutputStream())
-
   val system = ActorSystem("MUD")
-  val name = "MUDTESTPLAYER"
-  val player = system.actorOf(Props(MUDTestPlayer(name, in, out, config)), name)
-  player ! MUDTestPlayer.Connect
+ 
+  if(flagsAndValues.contains("-nonnetworked")) {
+    println("Running nonnetworked test.")
+    val in = Console.in
+    val out = Console.out
+    connectPlayer("MUDTESTPLAYER",in,out)
+  } else {
+    println("Running networked test.")
+    if(flagsAndValues.contains("-stress")) {
+      println("Running stress test.")
+      val numStressPlayers = 1000
+      println("Connecting " + numStressPlayers + " players.")
+      for(i <- 0 until numStressPlayers) {
+        val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
+        val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
+        val out = new PrintStream(sock.getOutputStream())
+        connectPlayer("MUDTESTPLAYER_" + i,in,out)
+      }
+      println("Connected " + numStressPlayers + " players.")
+    } else {
+      println("Running accuracy test.")
+      val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
+      val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
+      val out = new PrintStream(sock.getOutputStream())
+      connectPlayer("MUDTESTPLAYER",in,out)
+    }
+  }
+  
+  def connectPlayer(name:String,in:BufferedReader,out:PrintStream) {
+    val player = system.actorOf(Props(MUDTestPlayer(name, in, out, config)), name)
+    player ! MUDTestPlayer.Connect
+  }
 }
