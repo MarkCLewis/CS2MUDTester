@@ -8,28 +8,28 @@ import scala.collection.mutable.Map
 import scala.concurrent.Future
 import akka.actor.PoisonPill
 
-object MUDTestPlayer {
+object SimplePlayer {
   case class GameState(roomName: String, val inventory: Seq[String], val players: Seq[String], val roomItems: Seq[String], val exits: Seq[String])
 
   case object Connect
   case object TakeAction
 
-  def apply(n: String, i: BufferedReader, o: PrintStream, config: IOConfig): MUDTestPlayer = {
-    new MUDTestPlayer(n, i, o, config)
+  def apply(n: String, i: BufferedReader, o: PrintStream, config: IOConfig): SimplePlayer = {
+    new SimplePlayer(n, i, o, config)
   }
 }
 
-class MUDTestPlayer private (name: String,
+class SimplePlayer private (name: String,
     private val in: BufferedReader,
     private val out: PrintStream,
     val config: IOConfig) extends Actor {
 
-  private var currGameState = MUDTestPlayer.GameState("", Nil, Nil, Nil, Nil)
+  private var currGameState = SimplePlayer.GameState("", Nil, Nil, Nil, Nil)
   private var commandCount = 0
 
   // Actor Receive
   def receive = {
-    case MUDTestPlayer.Connect =>
+    case SimplePlayer.Connect =>
       // Tell name for login
       out.println(name)
 
@@ -46,9 +46,9 @@ class MUDTestPlayer private (name: String,
       //println(currGameState)
 
       implicit val ec = context.system.dispatcher
-      context.system.scheduler.schedule(1 seconds, 1000 millis, self, MUDTestPlayer.TakeAction)
+      context.system.scheduler.schedule(1 seconds, 1000 millis, self, SimplePlayer.TakeAction)
 
-    case MUDTestPlayer.TakeAction =>
+    case SimplePlayer.TakeAction =>
       //println("Issuing command " + commandCount)
       commandCount += 1
       if (commandCount > config.numCommandsToGive) {

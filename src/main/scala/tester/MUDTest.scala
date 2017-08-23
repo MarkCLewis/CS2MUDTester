@@ -97,7 +97,7 @@ object MUDTest extends App {
   }
   
   def connectPlayer(name:String,in:BufferedReader,out:PrintStream) {
-    val player = system.actorOf(Props(MUDTestPlayer(name, in, out, config)), name)
-    player ! MUDTestPlayer.Connect
+    val player = system.actorOf(Props(SimplePlayer(name, in, out, config)), name)
+    player ! SimplePlayer.Connect
   }
 }
