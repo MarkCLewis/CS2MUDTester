@@ -13,10 +13,6 @@ class TestPlayer private(name:String,
     private val in:BufferedReader,
     private val out:PrintStream,
     val config:IOConfig) extends Player(name,in,out,config) {
-  
-    def connect() {
-      
-    }
     
     def takeAction() {
       
