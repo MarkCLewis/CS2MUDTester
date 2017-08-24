@@ -14,11 +14,11 @@ case class IOConfig(
     items: IOElement,
     invItems: IOElement) {
   
-  private def validArgs(com: Command, state: SimplePlayer.GameState): Boolean = {
+  private def validArgs(com: Command, state: Player.GameState): Boolean = {
     com.args.forall(_.isValidForState(state))
   }
 
-  def randomValidCommand(state: SimplePlayer.GameState): Command = {
+  def randomValidCommand(state: Player.GameState): Command = {
     val com = commands(util.Random.nextInt(commands.length))
     if (com.isTerminator || (com.isMovement && !state.exits.contains(com.name)) || !validArgs(com, state))
       randomValidCommand(state) else com

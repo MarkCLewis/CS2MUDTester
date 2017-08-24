@@ -11,31 +11,31 @@ object CommandArgument {
 }
 
 sealed trait CommandArgument {
-  def apply(state: SimplePlayer.GameState): String
-  def isValidForState(state: SimplePlayer.GameState): Boolean
+  def apply(state: Player.GameState): String
+  def isValidForState(state: Player.GameState): Boolean
 }
 
 case object InvItem extends CommandArgument {
-  def apply(state: SimplePlayer.GameState): String = state.inventory(util.Random.nextInt(state.inventory.length))
-  def isValidForState(state: SimplePlayer.GameState): Boolean = state.inventory.nonEmpty
+  def apply(state: Player.GameState): String = state.inventory(util.Random.nextInt(state.inventory.length))
+  def isValidForState(state: Player.GameState): Boolean = state.inventory.nonEmpty
 }
 
 case object RoomItem extends CommandArgument {
-  def apply(state: SimplePlayer.GameState): String = state.roomItems(util.Random.nextInt(state.roomItems.length))
-  def isValidForState(state: SimplePlayer.GameState): Boolean = state.roomItems.nonEmpty
+  def apply(state: Player.GameState): String = state.roomItems(util.Random.nextInt(state.roomItems.length))
+  def isValidForState(state: Player.GameState): Boolean = state.roomItems.nonEmpty
 }
 
 case object RoomOccupant extends CommandArgument {
-  def apply(state: SimplePlayer.GameState): String = state.players(util.Random.nextInt(state.players.length))
-  def isValidForState(state: SimplePlayer.GameState): Boolean = state.players.nonEmpty
+  def apply(state: Player.GameState): String = state.players(util.Random.nextInt(state.players.length))
+  def isValidForState(state: Player.GameState): Boolean = state.players.nonEmpty
 }
 
 case object RoomExit extends CommandArgument {
-  def apply(state: SimplePlayer.GameState): String = state.exits(util.Random.nextInt(state.exits.length))
-  def isValidForState(state: SimplePlayer.GameState): Boolean = state.exits.nonEmpty
+  def apply(state: Player.GameState): String = state.exits(util.Random.nextInt(state.exits.length))
+  def isValidForState(state: Player.GameState): Boolean = state.exits.nonEmpty
 }
 
 case class ConstantArg(value: String) extends CommandArgument {
-  def apply(state: SimplePlayer.GameState): String = value 
-  def isValidForState(state: SimplePlayer.GameState): Boolean = true
+  def apply(state: Player.GameState): String = value 
+  def isValidForState(state: Player.GameState): Boolean = true
 }

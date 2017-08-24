@@ -7,7 +7,7 @@ import scala.util.matching.Regex
 import scala.annotation.tailrec
 
 object Command {
-  def sendCommand(out: PrintStream, name: String, args: Seq[CommandArgument], currentState: SimplePlayer.GameState): Unit = {
+  def sendCommand(out: PrintStream, name: String, args: Seq[CommandArgument], currentState: Player.GameState): Unit = {
     val com = name + " " + args.map(_(currentState)).mkString(" ")
     //println("Sending "+com)
     out.println(com)
@@ -33,13 +33,13 @@ sealed trait Command {
 	val isMovement: Boolean
   val name: String
   val args: Seq[CommandArgument]
-  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, currentState: SimplePlayer.GameState): Either[String, SimplePlayer.GameState]
+  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, currentState: Player.GameState): Either[String, Player.GameState]
 }
 
 case class RoomParsing(val name: String, args: Seq[CommandArgument], isMovement: Boolean) extends Command {
 	val isTerminator = false
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
-      currentState: SimplePlayer.GameState): Either[String, SimplePlayer.GameState] = {
+      currentState: Player.GameState): Either[String, Player.GameState] = {
     Command.sendCommand(out, name, args, currentState)
     Command.readToMatch(in, config.roomOutput) match {
       case Left(message) => Left(message)
@@ -56,7 +56,7 @@ case class RoomParsing(val name: String, args: Seq[CommandArgument], isMovement:
 case class Unparsed(val name: String, args: Seq[CommandArgument], isTerminator: Boolean) extends Command {
 	val isMovement = false
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
-      currentState: SimplePlayer.GameState): Either[String, SimplePlayer.GameState] = {
+      currentState: Player.GameState): Either[String, Player.GameState] = {
     Command.sendCommand(out, name, args, currentState)
     Right(currentState)
   }
@@ -66,7 +66,7 @@ case class InvParsing(val name: String, args: Seq[CommandArgument]) extends Comm
 	val isTerminator = false
 	val isMovement = false
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
-      currentState: SimplePlayer.GameState): Either[String, SimplePlayer.GameState] = {
+      currentState: Player.GameState): Either[String, Player.GameState] = {
     Command.sendCommand(out, name, args, currentState)
     Command.readToMatch(in, config.inventoryOutput) match {
       case Left(message) => Left(message)
