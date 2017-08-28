@@ -68,36 +68,6 @@ object MUDTest extends App {
   // Read the configuration file
   val config = IOConfig(configFile)
   val system = ActorSystem("MUD")
- 
-  if(flagsAndValues.contains("-nonnetworked")) {
-    println("Running nonnetworked test.")
-    val in = Console.in
-    val out = Console.out
-    connectPlayer("MUDTest_SimplePlayer",in,out)
-  } else {
-    println("Running networked test.")
-    if(flagsAndValues.contains("-stress")) {
-      println("Running stress test.")
-      val numStressPlayers = 2
-      println("Connecting " + numStressPlayers + " players.")
-      for(i <- 0 until numStressPlayers) {
-        val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
-        val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
-        val out = new PrintStream(sock.getOutputStream())
-        connectPlayer("MUDTest_SimplePlayer_" + i,in,out)
-      }
-      println("Connected " + numStressPlayers + " players.")
-    } else {
-      println("Running accuracy test.")
-      val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
-      val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
-      val out = new PrintStream(sock.getOutputStream())
-      connectPlayer("MUDTest_SimplePlayer",in,out)
-    }
-  }
-  
-  def connectPlayer(name:String,in:BufferedReader,out:PrintStream) {
-    val player = system.actorOf(Props(SimplePlayer(name, in, out, config)), name)
-    player ! Player.Connect
-  }
+  val playerManager = PlayerManager(config,system,flagsAndValues)
+
 }

@@ -23,6 +23,12 @@ case class IOConfig(
     if (com.isTerminator || (com.isMovement && !state.exits.contains(com.name)) || !validArgs(com, state))
       randomValidCommand(state) else com
   }
+  
+  def randomValidMovement(state:Player.GameState):Command = {
+    val com = (commands.filter(_.isMovement))(util.Random.nextInt(commands.length))
+    if (com.isTerminator || !state.exits.contains(com.name) || !validArgs(com,state))
+      randomValidMovement(state) else com
+  }
 
   def exitCommand(): Command = {
     commands.find(_.isTerminator).get
