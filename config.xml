@@ -3,6 +3,7 @@
 <config>
 	<numCommandsToGive>10</numCommandsToGive>
 	
+	<!-- Commands -->
 	<commands>
 		<command name="north" output="room" movement="true" enabled="true"/>
 		<command name="south" output="room" movement="true" enabled="true"/>
@@ -47,9 +48,10 @@ Inventory:
 		<invItems group="2" separator="\n">\t(\w+) - .+</invItems>
 	</output>
 	
+	<!-- Debug levels -->
 	<debug>
 		<regexDebug level="0"></regexDebug>
-		<playerDebug level="0"></playerDebug>
+		<playerDebug level="1"></playerDebug>
 		<roomDebug level="0">
 			<monitoredRooms>
 				<monitoredRoom>Living Room</monitoredRoom>
@@ -58,7 +60,8 @@ Inventory:
 		</roomDebug>
 	</debug>
 	
-	<testProcedures>
-		<getAndDrop enabled="true"></getAndDrop>
-	</testProcedures>
+	<!-- Test procedures -->
+	<tests>
+		<getDropTest enabled="true"></getDropTest>
+	</tests>
 </config>
