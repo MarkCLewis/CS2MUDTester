@@ -12,7 +12,8 @@ case class IOConfig(
     occupants: Option[IOElement],
     exits: IOElement,
     items: IOElement,
-    invItems: IOElement) {
+    invItems: IOElement,
+    testProcs: Map[String,Boolean]) {
   
   private def validArgs(com: Command, state: Player.GameState): Boolean = {
     com.args.forall(_.isValidForState(state))
@@ -20,12 +21,13 @@ case class IOConfig(
 
   def randomValidCommand(state: Player.GameState): Command = {
     val com = commands(util.Random.nextInt(commands.length))
-    if (com.isTerminator || (com.isMovement && !state.exits.contains(com.name)) || !validArgs(com, state))
+    if ((com.isMovement && !state.exits.contains(com.name)) || !validArgs(com, state))
       randomValidCommand(state) else com
   }
   
   def randomValidMovement(state:Player.GameState):Command = {
-    val com = (commands.filter(_.isMovement))(util.Random.nextInt(commands.length))
+    val moves = commands.filter(_.isMovement)
+    val com = moves(util.Random.nextInt(moves.length))
     if (com.isTerminator || !state.exits.contains(com.name) || !validArgs(com,state))
       randomValidMovement(state) else com
   }
@@ -88,13 +90,17 @@ object IOConfig {
     val exits = parseElement(xml \ "output" \ "exits")
     val items = parseElement(xml \ "output" \ "items")
     val invItems = parseElement(xml \ "output" \ "invItems")
+    val testProcs = Map(("getDropProc" -> false)).map{ proc =>
+      (proc._1 -> ((((xml \ "tests") \ proc._1) \ "@enabled").text.trim == "true"))
+    }
+    
     Debug.regexDebugLevel = (((xml \ "debug") \ "regexDebug") \ "@level").text.trim.toInt
     Debug.playerDebugLevel = (((xml \ "debug") \ "playerDebug") \ "@level").text.trim.toInt
     Debug.roomDebugLevel = (((xml \ "debug") \ "roomDebug") \ "@level").text.trim.toInt
     Debug.monitoredRooms = ((((xml \ "debug") \ "roomDebug") \ "monitoredRooms") \ "monitoredRoom").map(_.text.trim)
 
     try {
-      new IOConfig(numCommandsToGive, commands, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items, invItems)
+      new IOConfig(numCommandsToGive, commands, roomOutput.r, inventoryOutput.r, roomName, occupants, exits, items, invItems, testProcs)
     } catch {
       case e: java.util.regex.PatternSyntaxException => {
         println("Illegal Regex syntax:\n " + e.getDescription + "\n" + e.getPattern)

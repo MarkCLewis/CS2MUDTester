@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import java.io.{PrintStream,BufferedReader,InputStreamReader}
 import akka.actor.Props
 import java.net.Socket
+import akka.actor.ActorRef
 
 object PlayerManager {
   def apply(c:IOConfig,s:ActorSystem,fAV:Map[String,Option[String]]):PlayerManager = {
@@ -35,10 +36,14 @@ class PlayerManager private(private val config:IOConfig,
   def networkedTest() {
     println("Running networked test.")
     println("Running test test.")
-    val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
-    val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
-    val out = new PrintStream(sock.getOutputStream())
-    connectTestPlayer("MUDTest_TestPlayer",in,out)
+    if(config.testProcs("getDropProc")) {
+      println("Running get/drop test.")
+      val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
+      val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
+      val out = new PrintStream(sock.getOutputStream())
+      val player = connectTestPlayer("MUDTest_TestPlayer",in,out)
+      player ! TestPlayer.GetDropTest
+    }
   }
   
   def networkedStress() {
@@ -60,8 +65,9 @@ class PlayerManager private(private val config:IOConfig,
     player ! Player.Connect
   }
   
-  def connectTestPlayer(name:String,in:BufferedReader,out:PrintStream) {
+  def connectTestPlayer(name:String,in:BufferedReader,out:PrintStream):ActorRef = {
     val player = system.actorOf(Props(TestPlayer(name, in, out, config)), name)
     player ! Player.Connect
+    player
   }
 }

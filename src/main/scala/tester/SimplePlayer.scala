@@ -34,7 +34,7 @@ class SimplePlayer private (name: String,
     // Tell name for login
     out.println(name)
     
-    // Read initial room description
+    // Read initial room descriptionc
     Command.readToMatch(in, config.roomOutput) match {
       case Left(message) => println(message)
       case Right(m) =>
