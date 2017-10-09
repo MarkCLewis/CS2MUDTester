@@ -68,6 +68,6 @@ object MUDTest extends App {
   // Read the configuration file
   val config = IOConfig(configFile)
   val system = ActorSystem("MUD")
-  val playerManager = PlayerManager(config,system,flagsAndValues)
+  val playerManager = system.actorOf(Props(PlayerManager(config,system,flagsAndValues)),"PlayerManager")
 
 }
