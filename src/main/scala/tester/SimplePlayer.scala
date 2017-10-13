@@ -15,8 +15,8 @@ case class Response(time:Long, result:Boolean)
 object SimplePlayer {
   case object TakeAction
   
-  def apply(n: String, i: BufferedReader, o: PrintStream, config: IOConfig, playerManager:ActorRef): SimplePlayer = {
-    new SimplePlayer(n, i, o, config,playerManager)
+  def apply(n: String, i: BufferedReader, o: PrintStream, config: IOConfig, playerManager:ActorRef, timeKeeper:ActorRef): SimplePlayer = {
+    new SimplePlayer(n, i, o, config,playerManager,timeKeeper)
   }
 }
   
@@ -24,7 +24,8 @@ class SimplePlayer private (name: String,
     private val in: BufferedReader,
     private val out: PrintStream,
     private val config: IOConfig,
-    private val playerManager:ActorRef) extends Actor {
+    private val playerManager:ActorRef,
+    private val timeKeeper:ActorRef) extends Actor {
 
   protected var gs = Player.GameState("", Nil, Nil, Nil, Nil)
   private var commandCount = 0
@@ -71,17 +72,19 @@ class SimplePlayer private (name: String,
       val startTime:Long = System.nanoTime()
       command.runCommand(out, in, config, gs) match {
         case Left(message) =>
-          val stopTime:Long = System.nanoTime()
-          playerManager ! PlayerManager.ReceiveResponse(Response(stopTime-startTime,false))
+          logResponse(startTime,System.nanoTime(),false)
           Debug.playerDebugPrint(1, "Unsuccessfull " + command.name + " command.")
           Debug.roomDebugPrint(1, gs.roomName, "Unsuccessfull " + command.name + " command in " + gs.roomName + " room.")
         case Right(state) =>
-          val stopTime:Long = System.nanoTime()
-          playerManager ! PlayerManager.ReceiveResponse(Response(stopTime-startTime,false))
+          logResponse(startTime,System.nanoTime(),true)
           Debug.playerDebugPrint(1, "Successfull " + command.name + " command.")
           Debug.roomDebugPrint(1, gs.roomName, "Successfull " + command.name + " command in " + gs.roomName + " room.")
           gs = state
       }
     }
+  }
+  
+  private def logResponse(startTime:Long,stopTime:Long,res:Boolean) {
+    timeKeeper ! TimeKeeper.ReceiveResponse(Response(stopTime-startTime,res))
   }
 }

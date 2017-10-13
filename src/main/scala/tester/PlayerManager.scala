@@ -15,8 +15,6 @@ object PlayerManager {
   case object NetworkedStress
   case object NetworkedTest
   case class ConnectSimplePlayers(n:Int)
-  case object CalculateResponseTime
-  case class ReceiveResponse(response:Response)
   case class RegisterPlayer(player:ActorRef)
   case class DeregisterPlayer(player:ActorRef)
   
@@ -29,12 +27,10 @@ class PlayerManager private(private val config:IOConfig,
     private val system:ActorSystem,
     private val flagsAndValues:Map[String,Option[String]]) extends Actor {
   
-  private val players = Buffer[ActorRef]()
-  private val responses = Buffer[Response]()
-  private var playerNumber = 0
-  
   implicit private val ec = context.system.dispatcher
-  context.system.scheduler.schedule(1 seconds, 1 seconds, self, PlayerManager.CalculateResponseTime)
+  private val players = Buffer[ActorRef]()
+  private var playerNumber = 0
+  private val timeKeeper = system.actorOf(Props(TimeKeeper()),"TimeKeeper")
   
   if(flagsAndValues.contains("-nonnetworked")) {
     self ! PlayerManager.NonnetworkedTest
@@ -51,9 +47,10 @@ class PlayerManager private(private val config:IOConfig,
     case PlayerManager.NetworkedStress => startNetworkedStress()
     case PlayerManager.NetworkedTest => startNetworkedTest()
     case PlayerManager.ConnectSimplePlayers(n) => connectSimplePlayers(n)
-    case PlayerManager.CalculateResponseTime => calculateResponseTime()
-    case PlayerManager.ReceiveResponse(response) => responses += response
-    case PlayerManager.RegisterPlayer(player) => players += player
+    case PlayerManager.RegisterPlayer(player) => {
+      players += player
+      timeKeeper ! TimeKeeper.PlayerRegistered
+    }
     case PlayerManager.DeregisterPlayer(player) => {
       players -= player
       sender ! Player.Disconnect
@@ -81,14 +78,23 @@ class PlayerManager private(private val config:IOConfig,
   }
   
   private def startNetworkedStress() {
-    val numInitialPlayers = 10
-    val numIntervalPlayers = 10
+    val numInitialPlayers = 50
+    val numIntervalPlayers = 50
+    val addPlayerInterval = 10 seconds
   
     println("Running networked stress test.")
     println("Connecting " + numInitialPlayers + " players.")
     
     self ! PlayerManager.ConnectSimplePlayers(numInitialPlayers)
-    context.system.scheduler.schedule(1 seconds, 10 seconds, self, PlayerManager.ConnectSimplePlayers(numIntervalPlayers))
+    context.system.scheduler.schedule(1 seconds, addPlayerInterval, self, PlayerManager.ConnectSimplePlayers(numIntervalPlayers))
+  }
+  
+  private def connectSimplePlayer(name:String,in:BufferedReader,out:PrintStream):ActorRef = {
+    val actorName = name + "_" + playerNumber
+    val player = system.actorOf(Props(SimplePlayer(actorName, in, out, config, self, timeKeeper)), actorName)
+    playerNumber+=1
+    player ! Player.Connect
+    player
   }
   
   private def connectSimplePlayers(n:Int) {
@@ -100,27 +106,11 @@ class PlayerManager private(private val config:IOConfig,
     }
   }
   
-  private def connectSimplePlayer(name:String,in:BufferedReader,out:PrintStream):ActorRef = {
-    val actorName = name + "_" + playerNumber
-    val player = system.actorOf(Props(SimplePlayer(actorName, in, out, config, self)), actorName)
-    playerNumber+=1
-    player ! Player.Connect
-    player
-  }
-  
   private def connectTestPlayer(name:String,in:BufferedReader,out:PrintStream):ActorRef = {
     val actorName = name + "_" + playerNumber
     val player = system.actorOf(Props(TestPlayer(actorName, in, out, config)),actorName)
     playerNumber+=1
     player ! Player.Connect
     player
-  }
-  
-  private def calculateResponseTime() {
-    if(!responses.isEmpty) {
-      val average = responses.map(_.time).sum/responses.length
-      println("Number of Players: " + players.length + ", number of commands: " + responses.length + ", average response time: " + average/1000000 + " ms")
-      responses.clear()
-    }
   }
 }
