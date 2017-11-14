@@ -1,28 +1,12 @@
-package tester
+package stresser
 
-import java.net.Socket
-import java.io.{ BufferedReader, InputStreamReader, PrintStream }
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import akka.actor.{ Props, ActorSystem }
+import akka.actor.ActorSystem
 import utility.IOConfig
-import com.typesafe.config.ConfigFactory
+import akka.actor.Props
+import tester.TestPlayerManager
 
-/**
- * This application will test a networked MUD implementation. The user needs to provide connection
- * information, host and port, as well as information about what commands are to be tested.
- * 
- * -host
- * -port
- * -config
- * (-stress)
- * 
- * -nonnetworked
- */
-object MUDTest extends App {
-  println("args: " + args.mkString(", "))
-  
-  val config = ConfigFactory.empty()
+object MUDStress extends App {
+    println("args: " + args.mkString(", "))
   
   val defaultHost = "localhost"
   val defaultPort = "4000"
@@ -70,8 +54,7 @@ object MUDTest extends App {
   }
 
   // Read the configuration file
-  val ioConfig = IOConfig(configFile)
-  val system = ActorSystem("MUD",config)
-  val playerManager = system.actorOf(Props(TestPlayerManager(ioConfig,system,flagsAndValues)),"PlayerManager")
-
+  val config = IOConfig(configFile)
+  val system = ActorSystem("MUD")
+  val playerManager = system.actorOf(Props(TestPlayerManager(config,system,flagsAndValues)),"PlayerManager")
 }

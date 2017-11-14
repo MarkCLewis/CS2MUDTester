@@ -1,5 +1,6 @@
-package tester
+package utility
 
+import scala.collection.Seq
 import scala.util.matching.Regex
 import scala.xml.XML
 
@@ -13,8 +14,8 @@ case class IOConfig(
     exits: IOElement,
     items: IOElement,
     invItems: IOElement,
-    testProcs: Map[String,Boolean]) {
-  
+    testProcs: Map[String, Boolean]) {
+
   private def validArgs(com: Command, state: Player.GameState): Boolean = {
     com.args.forall(_.isValidForState(state))
   }
@@ -24,11 +25,11 @@ case class IOConfig(
     if ((com.isMovement && !state.exits.contains(com.name)) || !validArgs(com, state))
       randomValidCommand(state) else com
   }
-  
-  def randomValidMovement(state:Player.GameState):Command = {
+
+  def randomValidMovement(state: Player.GameState): Command = {
     val moves = commands.filter(_.isMovement)
     val com = moves(util.Random.nextInt(moves.length))
-    if (com.isTerminator || !state.exits.contains(com.name) || !validArgs(com,state))
+    if (com.isTerminator || !state.exits.contains(com.name) || !validArgs(com, state))
       randomValidMovement(state) else com
   }
 
@@ -40,28 +41,28 @@ case class IOConfig(
 case class IOElement(groupNumber: Int, separator: Option[String], pattern: Regex) {
   def parseSingle(m: Regex.Match): String = {
     val found = m.group(groupNumber)
-    Debug.regexDebugPrint(1,"Looking for output group " + groupNumber + " using pattern " + pattern + ", found \"" + found + "\".")
+    Debug.regexDebugPrint(1, "Looking for output group " + groupNumber + " using pattern " + pattern + ", found \"" + found + "\".")
     found
   }
   def parseSeq(m: Regex.Match): Seq[String] = {
     if (separator.isEmpty) throw new UnsupportedOperationException("No separator for element with parseSeq.")
     val str = m.group(groupNumber)
-    Debug.regexDebugPrint(2,s"str = $str")
+    Debug.regexDebugPrint(2, s"str = $str")
     if (str == null) Seq.empty else {
       val found = str.split(separator.get).map { part =>
-        Debug.regexDebugPrint(2,s"Match $part against $pattern")
+        Debug.regexDebugPrint(2, s"Match $part against $pattern")
         pattern.findFirstMatchIn(part) match {
           case None => throw new IllegalArgumentException("Part in parseSeq didn't match pattern.")
           case Some(m) => m.group(1)
         }
       }
-      Debug.regexDebugPrint(1,"Looking for output group " + groupNumber + " using pattern " + pattern + ", found \"" + found.mkString("\", \"") + "\".")
+      Debug.regexDebugPrint(1, "Looking for output group " + groupNumber + " using pattern " + pattern + ", found \"" + found.mkString("\", \"") + "\".")
       found
     }
   }
 }
 
-object IOConfig {  
+object IOConfig {
   def apply(configFile: String): IOConfig = {
     val xml = XML.loadFile(configFile)
     val numCommandsToGive = (xml \ "numCommandsToGive").text.toInt
@@ -90,10 +91,10 @@ object IOConfig {
     val exits = parseElement(xml \ "output" \ "exits")
     val items = parseElement(xml \ "output" \ "items")
     val invItems = parseElement(xml \ "output" \ "invItems")
-    val testProcs = Map(("getDropProc" -> false)).map{ proc =>
-      (proc._1 -> ((((xml \ "tests") \ proc._1) \ "@enabled").text.trim == "true"))
-    }
-    
+    val testProcs = Array("getDrop").map { proc =>
+      (proc -> ((((xml \ "tests") \ proc) \ "@enabled").text.trim == "true"))
+    }.toMap
+
     Debug.regexDebugLevel = (((xml \ "debug") \ "regexDebug") \ "@level").text.trim.toInt
     Debug.playerDebugLevel = (((xml \ "debug") \ "playerDebug") \ "@level").text.trim.toInt
     Debug.roomDebugLevel = (((xml \ "debug") \ "roomDebug") \ "@level").text.trim.toInt
@@ -116,5 +117,5 @@ object IOConfig {
     val pattern = if (text.isEmpty) "(.*)" else text
     IOElement(group, separator, pattern.r)
   }
-  
+
 }

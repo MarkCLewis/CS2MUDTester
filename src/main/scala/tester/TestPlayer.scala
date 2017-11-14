@@ -1,11 +1,19 @@
 package tester
 
-import java.io.{ PrintStream, BufferedReader }
+import java.io.BufferedReader
+import java.io.PrintStream
+
 import akka.actor.Actor
+import utility.Command
+import utility.IOConfig
+import utility.Player
+import utility.PlayerManager
 
 object TestPlayer {
-  case object GetDropTest
-  
+  case object GetDropTest extends Test {
+    override def toString(): String = "get/drop"
+  }
+
   def apply(n: String, i: BufferedReader, o: PrintStream, c: IOConfig): TestPlayer = {
     new TestPlayer(n, i, o, c)
   }
@@ -18,18 +26,28 @@ class TestPlayer private (name: String,
 
   protected var gs = Player.GameState("", Nil, Nil, Nil, Nil)
   private var commandCount = 0
-  
+
   def receive() = {
-    case Player.Connect => connect()
-    case TestPlayer.GetDropTest => getDropTest()
+    case Player.Connect => {
+      connect()
+      sender ! PlayerManager.RegisterPlayer
+    }
+    case Player.Disconnect => {
+      config.exitCommand().runCommand(out, in, config, gs)
+      context.stop(self)
+    }
+    case TestPlayer.GetDropTest => {
+      getDropTest() match {
+        case Left(command) => sender ! TestPlayerManager.NegativeTestResult(TestPlayer.GetDropTest, command)
+        case Right(b) => sender ! TestPlayerManager.PositiveTestResult(TestPlayer.GetDropTest)
+      }
+      sender ! PlayerManager.DeregisterPlayer
+    }
     case _ =>
   }
-  
+
   private def connect() {
-    // Tell name for login
     out.println(name)
-    
-    // Read initial room description
     Command.readToMatch(in, config.roomOutput) match {
       case Left(message) => println(message)
       case Right(m) =>
@@ -41,101 +59,86 @@ class TestPlayer private (name: String,
     }
   }
 
-  private def getDropTest() {
-    commandCount += 1
-    if (commandCount > 1000) {
-      println("Unsuccessful get/drop test.")
-      config.exitCommand().runCommand(out, in, config, gs)
-      context.stop(self)
-    } else {
-      if(gs.roomItems.isEmpty) {
-        // move to new room and rerun
+  private def getDropTest(): Either[Command, Boolean] = {
+    /*
+     * Procedure:
+     * 
+     * 1. Run around until an item is found.
+     * 2. Grab item.
+     * 3. Check item is in inventory and no longer in room.
+     * 4. Drop item.
+     * 5. Check item is in room and no longer in inventory.
+     * 
+     */
+
+    println("Running get/drop procedure.")
+    val lookCommand = config.commands.filter(_.name == "look")(0)
+    val invCommand = config.commands.filter(_.name == "inventory")(0)
+    val getCommand = config.commands.filter(_.name == "get")(0)
+    val dropCommand = config.commands.filter(_.name == "drop")(0)
+
+    // 1. Run around until an item is found.
+    while (gs.roomItems.isEmpty) {
+      if (commandCount > 1000) {
+        return Left(lookCommand)
+      } else {
         val command = config.randomValidMovement(gs)
         command.runCommand(out, in, config, gs) match {
-          case Left(message) =>
-            println("Get/drop test, failed on \"" + command.name + "\" command.")
-            self ! TestPlayer.GetDropTest
-          case Right(state) =>
-            gs = state
+          case Left(message) => return Left(command)
+          case Right(state) => gs = state
         }
-        self ! TestPlayer.GetDropTest
-      } else {
-        // enter get/drop procedure
-        val lookCommand = config.commands.filter(_.name=="look")(0)
-        val invCommand = config.commands.filter(_.name=="inventory")(0)
-        val getCommand = config.commands.filter(_.name=="get")(0)
-        val dropCommand = config.commands.filter(_.name=="drop")(0)
-        val oldInv = gs.inventory
-        val oldRoomItems = gs.roomItems
-        
-        getCommand.runCommand(out, in, config, gs) match {
-          case Left(message) =>
-            println("Get/drop test, failed on \"" + getCommand.name + "\" command.")
-            self ! TestPlayer.GetDropTest
-          case Right(state) =>
-            gs = state
-        }
-        lookCommand.runCommand(out, in, config, gs) match {
-          case Left(message) =>
-            println("Get/drop test, failed on \"" + lookCommand.name + "\" command.")
-            self ! TestPlayer.GetDropTest
-          case Right(state) =>
-            gs = state
-        }
-        invCommand.runCommand(out, in, config, gs) match {
-          case Left(message) =>
-            println("Get/drop test, failed on \"" + invCommand.name + "\" command.")
-            self ! TestPlayer.GetDropTest
-          case Right(state) =>
-            gs = state
-        }
-        
-        val getInv = gs.inventory
-        val getRoomItems = gs.roomItems
-        if(oldRoomItems.filterNot(getRoomItems.contains(_))==getInv.filterNot(oldInv.contains(_))) {
-          println("Get/drop test, successful get command.")
-          
-          dropCommand.runCommand(out, in, config, gs) match {
-            case Left(message) =>
-              println("Get/drop test, failed on \"" + dropCommand.name + "\" command.")
-              self ! TestPlayer.GetDropTest
-            case Right(state) =>
-              gs = state
-          }
-          lookCommand.runCommand(out, in, config, gs) match {
-            case Left(message) =>
-              println("Get/drop test, failed on \"" + lookCommand.name + "\" command.")
-              self ! TestPlayer.GetDropTest
-            case Right(state) =>
-              gs = state
-          }
-          invCommand.runCommand(out, in, config, gs) match {
-            case Left(message) =>
-              println("Get/drop test, failed on \"" + invCommand.name + "\" command.")
-              self ! TestPlayer.GetDropTest
-            case Right(state) =>
-              gs = state
-          }
-          
-          val dropInv = gs.inventory
-          val dropRoomItems = gs.roomItems
-          if(dropRoomItems.filterNot(getRoomItems.contains(_))==getInv.filterNot(dropInv.contains(_))) {
-            println("Get/drop test, successful drop command.")
-            
-            println("Successful get/drop test.")
-            config.exitCommand().runCommand(out, in, config, gs)
-            context.stop(self)
-          } else {
-            println("Get/drop test, unsuccessful drop command.")
-            self ! TestPlayer.GetDropTest
-          }
-        } else {
-          println("Get/drop test, unsuccessful get command.")
-          self ! TestPlayer.GetDropTest
-        }
-        
+        commandCount += 1
       }
     }
+
+    val oldInv = gs.inventory
+    val oldRoomItems = gs.roomItems
+
+    // 2. Grab item.
+    getCommand.runCommand(out, in, config, gs) match {
+      case Left(message) => return Left(getCommand)
+      case Right(state) => gs = state
+    }
+
+    // 3. Check item is in inventory and no longer in room.
+    lookCommand.runCommand(out, in, config, gs) match {
+      case Left(message) => return Left(lookCommand)
+      case Right(state) => gs = state
+    }
+    invCommand.runCommand(out, in, config, gs) match {
+      case Left(message) => return Left(invCommand)
+      case Right(state) => gs = state
+    }
+    val getInv = gs.inventory
+    val getRoomItems = gs.roomItems
+    if (oldRoomItems.filterNot(getRoomItems.contains(_)) == getInv.filterNot(oldInv.contains(_))) {
+
+      // 4. Drop item.
+      dropCommand.runCommand(out, in, config, gs) match {
+        case Left(message) => return Left(dropCommand)
+        case Right(state) => gs = state
+      }
+
+      // 5. Check item is in room and no longer in inventory.
+      lookCommand.runCommand(out, in, config, gs) match {
+        case Left(message) => return Left(lookCommand)
+        case Right(state) => gs = state
+      }
+      invCommand.runCommand(out, in, config, gs) match {
+        case Left(message) => return Left(invCommand)
+        case Right(state) => gs = state
+      }
+      val dropInv = gs.inventory
+      val dropRoomItems = gs.roomItems
+      if (dropRoomItems.filterNot(getRoomItems.contains(_)) == getInv.filterNot(dropInv.contains(_))) {
+        return Right(true)
+      } else {
+        return Left(dropCommand)
+      }
+
+    } else {
+      return Left(getCommand)
+    }
   }
-  
+
 }

@@ -1,4 +1,4 @@
-package tester
+package utility
 
 object CommandArgument {
   def apply(n: xml.Node): CommandArgument = (n \ "@type").text match {
@@ -36,6 +36,6 @@ case object RoomExit extends CommandArgument {
 }
 
 case class ConstantArg(value: String) extends CommandArgument {
-  def apply(state: Player.GameState): String = value 
+  def apply(state: Player.GameState): String = value
   def isValidForState(state: Player.GameState): Boolean = true
 }

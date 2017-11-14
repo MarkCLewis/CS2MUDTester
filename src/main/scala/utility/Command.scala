@@ -1,10 +1,13 @@
-package tester
+package utility
 
-import java.io.PrintStream
 import java.io.BufferedReader
-import scala.xml.XML
-import scala.util.matching.Regex
+import java.io.PrintStream
+
+import scala.Left
+import scala.Right
 import scala.annotation.tailrec
+import scala.collection.Seq
+import scala.util.matching.Regex
 
 object Command {
   def sendCommand(out: PrintStream, name: String, args: Seq[CommandArgument], currentState: Player.GameState): Unit = {
@@ -15,13 +18,13 @@ object Command {
   def readToMatch(in: BufferedReader, regex: Regex): Either[String, Regex.Match] = {
     @tailrec
     def helper(input: String, cnt: Int): Either[String, Regex.Match] = {
-      if(cnt > 1000) Left("Couldn't match room output:\n" + input)
+      if (cnt > 1000) Left("Couldn't match room output:\n" + input)
       else {
-    		val input2 = input+"\n"+in.readLine()
-    		if(in.ready()) helper(input2, cnt) else {
-      	  val om = regex.findFirstMatchIn(input2)
-      	  if(om.isEmpty) helper(input2, cnt+1) else Right(om.get)
-    		}
+        val input2 = input + "\n" + in.readLine()
+        if (in.ready()) helper(input2, cnt) else {
+          val om = regex.findFirstMatchIn(input2)
+          if (om.isEmpty) helper(input2, cnt + 1) else Right(om.get)
+        }
       }
     }
     helper("", 0)
@@ -29,17 +32,17 @@ object Command {
 }
 
 sealed trait Command {
-	val isTerminator: Boolean
-	val isMovement: Boolean
+  val isTerminator: Boolean
+  val isMovement: Boolean
   val name: String
   val args: Seq[CommandArgument]
   def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, currentState: Player.GameState): Either[String, Player.GameState]
 }
 
 case class RoomParsing(val name: String, args: Seq[CommandArgument], isMovement: Boolean) extends Command {
-	val isTerminator = false
-  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
-      currentState: Player.GameState): Either[String, Player.GameState] = {
+  val isTerminator = false
+  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig,
+    currentState: Player.GameState): Either[String, Player.GameState] = {
     Command.sendCommand(out, name, args, currentState)
     Command.readToMatch(in, config.roomOutput) match {
       case Left(message) => Left(message)
@@ -54,19 +57,19 @@ case class RoomParsing(val name: String, args: Seq[CommandArgument], isMovement:
 }
 
 case class Unparsed(val name: String, args: Seq[CommandArgument], isTerminator: Boolean) extends Command {
-	val isMovement = false
-  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
-      currentState: Player.GameState): Either[String, Player.GameState] = {
+  val isMovement = false
+  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig,
+    currentState: Player.GameState): Either[String, Player.GameState] = {
     Command.sendCommand(out, name, args, currentState)
     Right(currentState)
   }
 }
 
 case class InvParsing(val name: String, args: Seq[CommandArgument]) extends Command {
-	val isTerminator = false
-	val isMovement = false
-  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig, 
-      currentState: Player.GameState): Either[String, Player.GameState] = {
+  val isTerminator = false
+  val isMovement = false
+  def runCommand(out: PrintStream, in: BufferedReader, config: IOConfig,
+    currentState: Player.GameState): Either[String, Player.GameState] = {
     Command.sendCommand(out, name, args, currentState)
     Command.readToMatch(in, config.inventoryOutput) match {
       case Left(message) => Left(message)

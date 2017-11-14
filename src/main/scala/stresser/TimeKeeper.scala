@@ -1,4 +1,4 @@
-package tester
+package stresser
 
 import akka.actor.Actor
 import scala.collection.mutable.Buffer
