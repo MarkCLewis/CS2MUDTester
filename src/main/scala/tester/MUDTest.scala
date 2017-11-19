@@ -15,7 +15,6 @@ import com.typesafe.config.ConfigFactory
  * -host
  * -port
  * -config
- * (-stress)
  * 
  * -nonnetworked
  */

@@ -15,9 +15,11 @@ import akka.actor.Props
 import utility.IOConfig
 import utility.Player
 import utility.PlayerManager
+import java.net.InetAddress
 
 object StressPlayerManager {
   case class ConnectSimplePlayers(n: Int)
+  case class ReceiveResponseReport(report:ResponseReport)
 
   def apply(c: IOConfig, s: ActorSystem, fAV: Map[String, Option[String]]): StressPlayerManager = {
     new StressPlayerManager(c, s, fAV)
@@ -30,27 +32,29 @@ class StressPlayerManager private (private val config: IOConfig,
 
   implicit private val ec = context.system.dispatcher
   private val players = Buffer[ActorRef]()
+  private var numPlayers = 0
   private var playerNumber = 0
-  private val timeKeeper = system.actorOf(Props(TimeKeeper()), "TimeKeeper")
+  private val timeKeeper = system.actorOf(Props(TimeKeeper(self)), "TimeKeeper")
 
   startNetworkedStress()
 
   def receive() = {
-    case StressPlayerManager.ConnectSimplePlayers(n) => connectSimplePlayers(n)
-    case PlayerManager.RegisterPlayer(player) => {
-      players += player
-      timeKeeper ! TimeKeeper.PlayerRegistered
+    case StressPlayerManager.ConnectSimplePlayers(n) => {
+      connectSimplePlayers(n)
+      numPlayers += n
     }
     case PlayerManager.DeregisterPlayer(player) => {
       players -= player
-      sender ! Player.Disconnect
+      context.stop(player)
+      numPlayers -= 1
     }
+    case StressPlayerManager.ReceiveResponseReport(report) => println("Number of Players: " + numPlayers + ", number of commands: " + report.numResponses + ", average response time: " + report.average / 1000000.0 + " ms")
     case _ =>
   }
 
   private def startNetworkedStress() {
-    val numInitialPlayers = 50
-    val numIntervalPlayers = 50
+    val numInitialPlayers = 10
+    val numIntervalPlayers = 10
     val addPlayerInterval = 10 seconds
 
     println("Running networked stress test.")
@@ -64,6 +68,7 @@ class StressPlayerManager private (private val config: IOConfig,
     val actorName = name + "_" + playerNumber
     val player = system.actorOf(Props(StressPlayer(actorName, in, out, config, self, timeKeeper)), actorName)
     playerNumber += 1
+    players += player
     player ! Player.Connect
     player
   }
@@ -73,7 +78,7 @@ class StressPlayerManager private (private val config: IOConfig,
       val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
       val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
       val out = new PrintStream(sock.getOutputStream())
-      connectSimplePlayer("MUDTest_SimplePlayer", in, out)
+      connectSimplePlayer("MUDStress_StressPlayer_" + InetAddress.getLocalHost().toString.split("/")(1), in, out)
     }
   }
 }

@@ -1,28 +1,30 @@
 package stresser
 
+import com.typesafe.config.ConfigFactory
+
 import akka.actor.ActorSystem
-import utility.IOConfig
 import akka.actor.Props
-import tester.TestPlayerManager
+import utility.IOConfig
+import java.net.InetAddress
 
 object MUDStress extends App {
-    println("args: " + args.mkString(", "))
-  
+  println("args: " + args.mkString(", "))
+
   val defaultHost = "localhost"
   val defaultPort = "4000"
   val defaultConfig = "config.xml"
-  val flagsAndValues = Map("-host" -> Some(defaultHost), "-port" -> Some(defaultPort), "-config" -> Some(defaultConfig)) ++ 
+  val flagsAndValues = Map("-host" -> Some(defaultHost), "-port" -> Some(defaultPort), "-config" -> Some(defaultConfig)) ++
     args.zipAll(args.tail, "", "").foldLeft(Map[String, Option[String]]()) { (m, t) =>
-    if (t._1(0) == '-' && t._2.isEmpty) {
-      m + (t._1 -> None)
-    } else if (t._1(0) == '-' && t._2(0) != '-') {
-      m + (t._1 -> Some(t._2))
-    } else if (t._1(0) == '-') {
-      m + (t._1 -> None)
-    } else {
-      m
+      if (t._1(0) == '-' && t._2.isEmpty) {
+        m + (t._1 -> None)
+      } else if (t._1(0) == '-' && t._2(0) != '-') {
+        m + (t._1 -> Some(t._2))
+      } else if (t._1(0) == '-') {
+        m + (t._1 -> None)
+      } else {
+        m
+      }
     }
-  }
   val requiredFlags = Array.fill(0)("") //"-host -port -config".split(" ")
   val allRequired = for (flag <- requiredFlags) yield {
     if (flagsAndValues.contains(flag)) {
@@ -53,8 +55,17 @@ object MUDStress extends App {
     "config.xml"
   }
 
+  // Akka Clustering Stuff
+  var port = 0
+  if (!args.isEmpty && (args(0).equals("seednode"))) port = 2552;
+
+  val system = ActorSystem.create("ClusterSystem",
+    ConfigFactory.parseString(s"ClusterAwareRouter.akka.remote.netty.tcp.port=${port}")
+      .withFallback(ConfigFactory.load())
+      .getConfig("ClusterAwareRouter"))
+
   // Read the configuration file
-  val config = IOConfig(configFile)
-  val system = ActorSystem("MUD")
-  val playerManager = system.actorOf(Props(TestPlayerManager(config,system,flagsAndValues)),"PlayerManager")
+  val ioConfig = IOConfig(configFile)
+  val config = ConfigFactory.empty()
+  val playerManager = system.actorOf(Props(StressPlayerManager(ioConfig, system, flagsAndValues)), "StressPlayerManager_" + InetAddress.getLocalHost().toString.split("/")(1))
 }

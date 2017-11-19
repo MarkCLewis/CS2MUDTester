@@ -8,3 +8,7 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.4"
 libraryDependencies += "org.scala-lang.modules" % "scala-xml_2.12" % "1.0.6" excludeAll ExclusionRule(name = "embrace")
 libraryDependencies += "com.typesafe.akka" %% "akka-cluster" % "2.5.6"
 libraryDependencies += "com.typesafe.akka" % "akka-cluster-metrics_2.12" % "2.5.6"
+libraryDependencies += "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.5.3"
+
+addCommandAlias("seednode", "runMain stresser.MUDStress seednode")
+addCommandAlias("node", "runMain stresser.MUDStress node")

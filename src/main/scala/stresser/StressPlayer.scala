@@ -17,9 +17,12 @@ import utility.Player
 import utility.PlayerManager
 
 case class Response(time: Long, result: Boolean)
+case class ResponseReport(average: Long, numResponses: Int)
 
 object StressPlayer {
   case object TakeAction
+  case class IncreasePlayerCount(n: Int)
+  case class DecreasePlayerCount(n: Int)
 
   def apply(n: String, i: BufferedReader, o: PrintStream, config: IOConfig, playerManager: ActorRef, timeKeeper: ActorRef): StressPlayer = {
     new StressPlayer(n, i, o, config, playerManager, timeKeeper)
@@ -33,22 +36,38 @@ class StressPlayer private (name: String,
     private val playerManager: ActorRef,
     private val timeKeeper: ActorRef) extends Actor {
 
+  implicit val ec = context.system.dispatcher
   protected var gs = Player.GameState("", Nil, Nil, Nil, Nil)
   private var commandCount = 0
   private val responses = Buffer[Response]()
+  private var playerCount = 1
+  private var dead = false
 
   def receive() = {
-    case Player.Connect => connect()
-    case Player.Disconnect => disconnect()
-    case StressPlayer.TakeAction => takeAction()
+    case Player.Connect => {
+      connect()
+      implicit val ec = context.system.dispatcher
+      context.system.scheduler.schedule(1 seconds, 1 second, self, StressPlayer.TakeAction)
+    }
+    case StressPlayer.TakeAction => {
+      if (!dead) takeAction() match {
+        case None => {
+          dead = true
+          config.exitCommand().runCommand(out, in, config, gs)
+          playerManager ! PlayerManager.DeregisterPlayer(self)
+        }
+        case Some(r) => {
+          if (r.result && util.Random.nextInt(100) < 1) {
+            timeKeeper ! TimeKeeper.ReceiveResponse(r)
+          }
+        }
+      }
+    }
     case _ =>
   }
 
   private def connect() {
-    // Tell name for login
     out.println(name)
-
-    // Read initial room description
     Command.readToMatch(in, config.roomOutput) match {
       case Left(message) => println(message)
       case Right(m) =>
@@ -58,39 +77,28 @@ class StressPlayer private (name: String,
         val occupants = config.occupants.map(_.parseSeq(m)).getOrElse(Seq.empty)
         gs = gs.copy(roomName = name, players = occupants, roomItems = items, exits = exits)
     }
-
-    implicit val ec = context.system.dispatcher
-    context.system.scheduler.schedule(1 seconds, 1000 millis, self, StressPlayer.TakeAction)
-    playerManager ! PlayerManager.RegisterPlayer(self)
   }
 
-  private def disconnect() {
-    config.exitCommand().runCommand(out, in, config, gs)
-    context.stop(self)
-  }
-
-  private def takeAction() {
+  private def takeAction(): Option[Response] = {
     commandCount += 1
-    if (commandCount > config.numCommandsToGive) {
-      playerManager ! PlayerManager.DeregisterPlayer(self)
-    } else {
+    if (commandCount > config.numCommandsToGive) None
+    else {
       val command = config.randomValidCommand(gs)
       val startTime: Long = System.nanoTime()
       command.runCommand(out, in, config, gs) match {
         case Left(message) =>
-          logResponse(startTime, System.nanoTime(), false)
+          val stopTime: Long = System.nanoTime()
           Debug.playerDebugPrint(1, "Unsuccessfull " + command.name + " command.")
           Debug.roomDebugPrint(1, gs.roomName, "Unsuccessfull " + command.name + " command in " + gs.roomName + " room.")
+          Some(Response(stopTime - startTime, false))
+        //None
         case Right(state) =>
-          logResponse(startTime, System.nanoTime(), true)
+          val stopTime: Long = System.nanoTime()
           Debug.playerDebugPrint(1, "Successfull " + command.name + " command.")
           Debug.roomDebugPrint(1, gs.roomName, "Successfull " + command.name + " command in " + gs.roomName + " room.")
           gs = state
+          Some(Response(stopTime - startTime, true))
       }
     }
-  }
-
-  private def logResponse(startTime: Long, stopTime: Long, res: Boolean) {
-    timeKeeper ! TimeKeeper.ReceiveResponse(Response(stopTime - startTime, res))
   }
 }
