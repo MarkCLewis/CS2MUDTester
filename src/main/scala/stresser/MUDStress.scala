@@ -6,6 +6,9 @@ import akka.actor.ActorSystem
 import akka.actor.Props
 import utility.IOConfig
 import java.net.InetAddress
+import akka.actor.Deploy
+import akka.actor.{ Props, Deploy, Address, AddressFromURIString }
+import akka.remote.RemoteScope
 
 object MUDStress extends App {
   println("args: " + args.mkString(", "))
@@ -56,16 +59,30 @@ object MUDStress extends App {
   }
 
   // Akka Clustering Stuff
-  var port = 0
-  if (!args.isEmpty && (args(0).equals("seednode"))) port = 2552;
+  val clusterPort = if(!args.isEmpty) {
+    args(0) match {
+      case "pandora00" => 2552
+      case "pandora01" => 2553
+      case "pandora02" => 2554
+      case "pandora03" => 2555
+      case "pandora04" => 2556
+      case "pandora05" => 2557
+      case "pandora06" => 2558
+      case "pandora07" => 2559
+      case "pandora08" => 2560
+      case _ => 0
+    }
+  } else 0
 
   val system = ActorSystem.create("ClusterSystem",
-    ConfigFactory.parseString(s"ClusterAwareRouter.akka.remote.netty.tcp.port=${port}")
+    ConfigFactory.parseString(s"ClusterAwareRouter.akka.remote.netty.tcp.port=${clusterPort}")
       .withFallback(ConfigFactory.load())
       .getConfig("ClusterAwareRouter"))
 
   // Read the configuration file
   val ioConfig = IOConfig(configFile)
   val config = ConfigFactory.empty()
-  val playerManager = system.actorOf(Props(StressPlayerManager(ioConfig, system, flagsAndValues)), "StressPlayerManager_" + InetAddress.getLocalHost().toString.split("/")(1))
+  val host = flagsAndValues("-host").getOrElse(defaultHost)
+  val port = flagsAndValues("-port").getOrElse(defaultPort).toInt
+  val playerManager = system.actorOf(Props(StressPlayerManager(ioConfig, system, host, port)), "StressPlayerManager_" + InetAddress.getLocalHost().toString.split("/")(1))
 }

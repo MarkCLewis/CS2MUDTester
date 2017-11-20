@@ -21,15 +21,13 @@ case class ResponseReport(average: Long, numResponses: Int)
 
 object StressPlayer {
   case object TakeAction
-  case class IncreasePlayerCount(n: Int)
-  case class DecreasePlayerCount(n: Int)
 
   def apply(n: String, i: BufferedReader, o: PrintStream, config: IOConfig, playerManager: ActorRef, timeKeeper: ActorRef): StressPlayer = {
     new StressPlayer(n, i, o, config, playerManager, timeKeeper)
   }
 }
 
-class StressPlayer private (name: String,
+class StressPlayer private (private val name: String,
     private val in: BufferedReader,
     private val out: PrintStream,
     private val config: IOConfig,
@@ -40,7 +38,6 @@ class StressPlayer private (name: String,
   protected var gs = Player.GameState("", Nil, Nil, Nil, Nil)
   private var commandCount = 0
   private val responses = Buffer[Response]()
-  private var playerCount = 1
   private var dead = false
 
   def receive() = {
@@ -49,13 +46,10 @@ class StressPlayer private (name: String,
       implicit val ec = context.system.dispatcher
       context.system.scheduler.schedule(1 seconds, 1 second, self, StressPlayer.TakeAction)
     }
+    case Player.KillPlayer => disconnect()
     case StressPlayer.TakeAction => {
       if (!dead) takeAction() match {
-        case None => {
-          dead = true
-          config.exitCommand().runCommand(out, in, config, gs)
-          playerManager ! PlayerManager.DeregisterPlayer(self)
-        }
+        case None => disconnect()
         case Some(r) => {
           if (r.result && util.Random.nextInt(100) < 1) {
             timeKeeper ! TimeKeeper.ReceiveResponse(r)
@@ -79,26 +73,36 @@ class StressPlayer private (name: String,
     }
   }
 
+  private def disconnect() {
+    dead = true
+    config.exitCommand().runCommand(out, in, config, gs)
+    playerManager ! PlayerManager.DeregisterPlayer(self)
+  }
+
   private def takeAction(): Option[Response] = {
-    commandCount += 1
-    if (commandCount > config.numCommandsToGive) None
-    else {
-      val command = config.randomValidCommand(gs)
-      val startTime: Long = System.nanoTime()
-      command.runCommand(out, in, config, gs) match {
-        case Left(message) =>
-          val stopTime: Long = System.nanoTime()
-          Debug.playerDebugPrint(1, "Unsuccessfull " + command.name + " command.")
-          Debug.roomDebugPrint(1, gs.roomName, "Unsuccessfull " + command.name + " command in " + gs.roomName + " room.")
-          Some(Response(stopTime - startTime, false))
-        //None
-        case Right(state) =>
-          val stopTime: Long = System.nanoTime()
-          Debug.playerDebugPrint(1, "Successfull " + command.name + " command.")
-          Debug.roomDebugPrint(1, gs.roomName, "Successfull " + command.name + " command in " + gs.roomName + " room.")
-          gs = state
-          Some(Response(stopTime - startTime, true))
-      }
+    //commandCount += 1
+    //if (commandCount > config.numCommandsToGive) {
+    //println(name + " out of commands.")
+    //None
+    //}
+    //else {
+    // TODO should StressPlayers just move around or perform other commands as well?
+    val command = config.randomValidMovement(gs)
+    val startTime: Long = System.nanoTime()
+    command.runCommand(out, in, config, gs) match {
+      case Left(message) =>
+        val stopTime: Long = System.nanoTime()
+        Debug.playerDebugPrint(1, "Unsuccessfull " + command.name + " command.")
+        Debug.roomDebugPrint(1, gs.roomName, "Unsuccessfull " + command.name + " command in " + gs.roomName + " room.")
+        Some(Response(stopTime - startTime, false))
+      //None
+      case Right(state) =>
+        val stopTime: Long = System.nanoTime()
+        Debug.playerDebugPrint(1, "Successfull " + command.name + " command.")
+        Debug.roomDebugPrint(1, gs.roomName, "Successfull " + command.name + " command in " + gs.roomName + " room.")
+        gs = state
+        Some(Response(stopTime - startTime, true))
     }
+    //}
   }
 }

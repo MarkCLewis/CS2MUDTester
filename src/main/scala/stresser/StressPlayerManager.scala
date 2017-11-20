@@ -19,22 +19,24 @@ import java.net.InetAddress
 
 object StressPlayerManager {
   case class ConnectSimplePlayers(n: Int)
-  case class ReceiveResponseReport(report:ResponseReport)
+  case class ReceiveResponseReport(report: ResponseReport)
 
-  def apply(c: IOConfig, s: ActorSystem, fAV: Map[String, Option[String]]): StressPlayerManager = {
-    new StressPlayerManager(c, s, fAV)
+  def apply(config: IOConfig, system: ActorSystem, host: String, port: Int): StressPlayerManager = {
+    new StressPlayerManager(config, system, host, port)
   }
 }
 
 class StressPlayerManager private (private val config: IOConfig,
     private val system: ActorSystem,
-    private val flagsAndValues: Map[String, Option[String]]) extends Actor {
+    private val host: String,
+    private val port: Int) extends Actor {
 
   implicit private val ec = context.system.dispatcher
   private val players = Buffer[ActorRef]()
   private var numPlayers = 0
   private var playerNumber = 0
-  private val timeKeeper = system.actorOf(Props(TimeKeeper(self)), "TimeKeeper")
+  private val globalName = "_" + InetAddress.getLocalHost().toString.split("/")(1)
+  private val timeKeeper = system.actorOf(Props(TimeKeeper(self)), "TimeKeeper" + globalName)
 
   startNetworkedStress()
 
@@ -75,10 +77,10 @@ class StressPlayerManager private (private val config: IOConfig,
 
   private def connectSimplePlayers(n: Int) {
     for (i <- 0 until n) {
-      val sock = new Socket(flagsAndValues("-host").getOrElse("localhost"), flagsAndValues("-port").getOrElse("4000").toInt)
+      val sock = new Socket(host, port)
       val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
       val out = new PrintStream(sock.getOutputStream())
-      connectSimplePlayer("MUDStress_StressPlayer_" + InetAddress.getLocalHost().toString.split("/")(1), in, out)
+      connectSimplePlayer("StressPlayer" + globalName, in, out)
     }
   }
 }

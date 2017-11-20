@@ -5,4 +5,5 @@ object Player {
 
   case object Connect
   case object Disconnect
+  case object KillPlayer
 }

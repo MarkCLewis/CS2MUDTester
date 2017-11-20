@@ -20,17 +20,20 @@ case class IOConfig(
     com.args.forall(_.isValidForState(state))
   }
 
+  // TODO This is just randomValidMovement + exit?
   def randomValidCommand(state: Player.GameState): Command = {
     val com = commands(util.Random.nextInt(commands.length))
-    if ((com.isMovement && !state.exits.contains(com.name)) || !validArgs(com, state))
-      randomValidCommand(state) else com
+    if ((com.isMovement && !state.exits.contains(com.name)) || !validArgs(com, state)) {
+      randomValidCommand(state)
+    } else com
   }
 
   def randomValidMovement(state: Player.GameState): Command = {
     val moves = commands.filter(_.isMovement)
     val com = moves(util.Random.nextInt(moves.length))
-    if (com.isTerminator || !state.exits.contains(com.name) || !validArgs(com, state))
-      randomValidMovement(state) else com
+    if (com.isTerminator || !state.exits.contains(com.name) || !validArgs(com, state)) {
+      randomValidMovement(state)
+    } else com
   }
 
   def exitCommand(): Command = {
