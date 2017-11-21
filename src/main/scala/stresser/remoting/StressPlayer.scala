@@ -1,4 +1,4 @@
-package stresser
+package stresser.remoting
 
 import java.io.BufferedReader
 import java.io.PrintStream
@@ -15,15 +15,19 @@ import utility.Debug
 import utility.IOConfig
 import utility.Player
 import utility.PlayerManager
-
-case class Response(time: Long, result: Boolean)
-case class ResponseReport(average: Long, numResponses: Int)
+import utility.ResponseReport
+import utility.Response
 
 object StressPlayer {
   case object TakeAction
 
-  def apply(n: String, i: BufferedReader, o: PrintStream, config: IOConfig, playerManager: ActorRef, timeKeeper: ActorRef): StressPlayer = {
-    new StressPlayer(n, i, o, config, playerManager, timeKeeper)
+  def apply(name: String,
+      in: BufferedReader,
+      out: PrintStream,
+      config: IOConfig,
+      playerManager: ActorRef,
+      timeKeeper: ActorRef): StressPlayer = {
+    new StressPlayer(name, in, out, config, playerManager, timeKeeper)
   }
 }
 
@@ -39,7 +43,7 @@ class StressPlayer private (private val name: String,
   private var commandCount = 0
   private val responses = Buffer[Response]()
   private var dead = false
-
+  
   def receive() = {
     case Player.Connect => {
       connect()

@@ -1,9 +1,13 @@
-package stresser
+package stresser.clustering
 
 import akka.actor.Actor
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration._
 import akka.actor.ActorRef
+import akka.actor.actorRef2Scala
+import utility.ResponseReport
+import utility.Response
+import utility.PlayerManager
 
 object TimeKeeper {
   case object AggregateResponseTime
@@ -25,7 +29,7 @@ class TimeKeeper private (private val playerManager:ActorRef) extends Actor {
     case TimeKeeper.AggregateResponseTime => {
       aggregateResponseTime() match {
         case None =>
-        case Some(r) => playerManager ! StressPlayerManager.ReceiveResponseReport(r)
+        case Some(r) => playerManager ! PlayerManager.ReceiveResponseReport(r)
       }
     }
     case TimeKeeper.ReceiveResponse(r) =>  responses += r

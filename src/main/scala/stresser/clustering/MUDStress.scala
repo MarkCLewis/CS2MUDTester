@@ -1,4 +1,4 @@
-package stresser
+package stresser.clustering
 
 import com.typesafe.config.ConfigFactory
 

@@ -1,8 +1,9 @@
-package stresser
+package stresser.clustering
 
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintStream
+import java.net.InetAddress
 import java.net.Socket
 
 import scala.collection.mutable.Buffer
@@ -15,7 +16,7 @@ import akka.actor.Props
 import utility.IOConfig
 import utility.Player
 import utility.PlayerManager
-import java.net.InetAddress
+import utility.ResponseReport
 
 object StressPlayerManager {
   case class ConnectSimplePlayers(n: Int)
