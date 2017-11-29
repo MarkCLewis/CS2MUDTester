@@ -14,19 +14,20 @@ import utility.Command
 import utility.Debug
 import utility.IOConfig
 import utility.Player
-import utility.PlayerManager
-import utility.ResponseReport
 import utility.Response
+import akka.actor.Cancellable
 
 object StressPlayer {
   case object TakeAction
+  case object EndStressTest
+  case object KillActor
 
   def apply(name: String,
-      in: BufferedReader,
-      out: PrintStream,
-      config: IOConfig,
-      playerManager: ActorRef,
-      timeKeeper: ActorRef): StressPlayer = {
+    in: BufferedReader,
+    out: PrintStream,
+    config: IOConfig,
+    playerManager: ActorRef,
+    timeKeeper: ActorRef): StressPlayer = {
     new StressPlayer(name, in, out, config, playerManager, timeKeeper)
   }
 }
@@ -43,24 +44,25 @@ class StressPlayer private (private val name: String,
   private var commandCount = 0
   private val responses = Buffer[Response]()
   private var dead = false
-  
+  private var schedule: Cancellable = _
+
   def receive() = {
     case Player.Connect => {
       connect()
       implicit val ec = context.system.dispatcher
-      context.system.scheduler.schedule(1 seconds, 1 second, self, StressPlayer.TakeAction)
+      schedule = context.system.scheduler.schedule(1 seconds, 1 second, self, StressPlayer.TakeAction)
     }
     case Player.KillPlayer => disconnect()
     case StressPlayer.TakeAction => {
       if (!dead) takeAction() match {
         case None => disconnect()
         case Some(r) => {
-          if (r.result && util.Random.nextInt(100) < 1) {
-            timeKeeper ! TimeKeeper.ReceiveResponse(r)
-          }
+          if (r.result && util.Random.nextInt(1000) < 1) timeKeeper ! TimeKeeper.ReceiveResponse(r)
         }
       }
     }
+    case StressPlayer.EndStressTest => schedule.cancel()
+    case StressPlayer.KillActor => disconnect()
     case _ =>
   }
 
@@ -80,7 +82,7 @@ class StressPlayer private (private val name: String,
   private def disconnect() {
     dead = true
     config.exitCommand().runCommand(out, in, config, gs)
-    playerManager ! PlayerManager.DeregisterPlayer(self)
+    context.stop(self)
   }
 
   private def takeAction(): Option[Response] = {
@@ -95,6 +97,7 @@ class StressPlayer private (private val name: String,
     val startTime: Long = System.nanoTime()
     command.runCommand(out, in, config, gs) match {
       case Left(message) =>
+        println(message)
         val stopTime: Long = System.nanoTime()
         Debug.playerDebugPrint(1, "Unsuccessfull " + command.name + " command.")
         Debug.roomDebugPrint(1, gs.roomName, "Unsuccessfull " + command.name + " command in " + gs.roomName + " room.")

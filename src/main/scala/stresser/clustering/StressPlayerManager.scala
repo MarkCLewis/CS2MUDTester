@@ -51,7 +51,7 @@ class StressPlayerManager private (private val config: IOConfig,
       context.stop(player)
       numPlayers -= 1
     }
-    case StressPlayerManager.ReceiveResponseReport(report) => println("Number of Players: " + numPlayers + ", number of commands: " + report.numResponses + ", average response time: " + report.average / 1000000.0 + " ms")
+    case StressPlayerManager.ReceiveResponseReport(report) => //println("Number of Players: " + numPlayers + ", number of commands: " + report.numResponses + ", average response time: " + report.average / 1000000.0 + " ms")
     case _ =>
   }
 

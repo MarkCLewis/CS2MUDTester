@@ -6,42 +6,52 @@ import scala.concurrent.duration.DurationInt
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.actorRef2Scala
-import utility.ResponseReport
 import utility.Response
-import java.io.PrintStream
-import java.io.BufferedReader
+import utility.ResponseReport
 
 object TimeKeeper {
-  case object AggregateResponseTime
-  case class ReceiveResponse(r: Response)
-  case class DebugMessage(message: String)
+  case class ReceiveResponse(response: Response)
+  case object SendTestReport
+  case class EndStressTest(info: StressTestInfo)
+  case class ChangeNumPlayers(n: Int)
+  case object KillActor
 
-  def apply(in: BufferedReader, out: PrintStream, stressTestManager: ActorRef): TimeKeeper = {
-    new TimeKeeper(in, out, stressTestManager)
+  def apply(info: StressTestInfo, stressTestManager: ActorRef): TimeKeeper = {
+    new TimeKeeper(info, stressTestManager)
   }
 }
 
-class TimeKeeper private (private val in: BufferedReader,
-    private val out: PrintStream,
+class TimeKeeper private (private val info: StressTestInfo,
     private val stressTestManager: ActorRef) extends Actor {
+  implicit private val ec = context.system.dispatcher
+  private val schedule = context.system.scheduler.schedule(1 second, 3 seconds, self, TimeKeeper.SendTestReport)
 
   private val responses = Buffer[Response]()
-
-  implicit private val ec = context.system.dispatcher
-  context.system.scheduler.schedule(1 seconds, 1 seconds, self, TimeKeeper.AggregateResponseTime)
+  private var numPlayers = 0
 
   def receive = {
-    case TimeKeeper.AggregateResponseTime => {
+    case TimeKeeper.ReceiveResponse(response) => responses += response
+    case TimeKeeper.SendTestReport => {
       aggregateResponseTime() match {
         case None =>
-        case Some(r) => {
-          out.println("responses: " + r.numResponses + ", average: " + r.average / 1000000.0 + " ms.")
+        case Some(report) => {
+          stressTestManager ! StressTestManager.ReceiveTestReport(info, report)
           responses.clear()
         }
       }
     }
-    case TimeKeeper.ReceiveResponse(r) => responses += r
-    case TimeKeeper.DebugMessage(message) => out.println(message)
+    case TimeKeeper.EndStressTest(info) => {
+      schedule.cancel()
+      aggregateResponseTime() match {
+        case None =>
+        case Some(report) => {
+          stressTestManager ! StressTestManager.ReceiveTestReport(info, report)
+          responses.clear()
+        }
+      }
+    }
+    case TimeKeeper.ChangeNumPlayers(n) => numPlayers += n
+    case TimeKeeper.KillActor => context.stop(self)
     case _ =>
   }
 
@@ -49,9 +59,7 @@ class TimeKeeper private (private val in: BufferedReader,
     if (responses.isEmpty) None
     else {
       val average = responses.map(_.time).sum / responses.length
-      val numResponses = responses.length
-      responses.clear()
-      Some(ResponseReport(average, numResponses))
+      Some(ResponseReport(average, numPlayers))
     }
   }
 }
