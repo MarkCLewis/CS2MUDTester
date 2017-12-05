@@ -16,11 +16,11 @@ import akka.actor.Props
 import akka.remote.RemoteScope
 import utility.Player
 import utility.PlayerManager
+import utility.ActorMessages
+
+import com.typesafe.config.ConfigFactory
 
 object StressPlayerManager {
-  case object EndStressTest
-  case object KillActor
-
   def apply(info: StressTestInfo, timeKeeper: ActorRef, ip: String): StressPlayerManager = {
     new StressPlayerManager(info, timeKeeper, ip)
   }
@@ -38,41 +38,36 @@ class StressPlayerManager private (private val info: StressTestInfo,
   private val numIntervalPlayers = 10
   private val addPlayerInterval = 1 second
 
-  implicit private val ec = context.system.dispatcher
+  implicit private val ec = context.system.dispatcher//s.lookup("prio-dispatcher")
   self ! PlayerManager.ConnectSimplePlayers(numInitialPlayers)
   private val schedule = context.system.scheduler.schedule(1 seconds, addPlayerInterval, self, PlayerManager.ConnectSimplePlayers(numIntervalPlayers))
 
   def receive() = {
     case PlayerManager.ConnectSimplePlayers(n) => {
-      connectSimplePlayers(n)
+      connectStressPlayers(n)
       timeKeeper ! TimeKeeper.ChangeNumPlayers(n)
     }
-    case StressPlayerManager.EndStressTest => {
-      schedule.cancel()
-      players.foreach(_ ! StressPlayer.EndStressTest)
-    }
-    case StressPlayerManager.KillActor => {
-      players.foreach(_ ! StressPlayer.KillActor)
+    case ActorMessages.EndStressTest => {
+      players.foreach(_ ! ActorMessages.EndStressTest)
       context.stop(self)
     }
     case _ =>
   }
 
-  private def connectSimplePlayer(in: BufferedReader, out: PrintStream): ActorRef = {
-    val actorName = "StressPlayer_" + ip + "_" + playerNumber
-    val player = context.system.actorOf(Props(StressPlayer(actorName, in, out, info.ioConfig, self, timeKeeper)).withDeploy(Deploy(scope = RemoteScope(address))), actorName)
-    playerNumber += 1
-    players += player
-    player ! Player.Connect
-    player
-  }
-
-  private def connectSimplePlayers(n: Int) {
+  private def connectStressPlayers(n: Int) {
     for (i <- 0 until n) {
       val sock = new Socket(info.host, info.port)
       val in = new BufferedReader(new InputStreamReader(sock.getInputStream()))
       val out = new PrintStream(sock.getOutputStream())
-      connectSimplePlayer(in, out)
+      val actorName = "StressPlayer_" + ip + "_" + playerNumber
+      val player = context.system.actorOf(Props(StressPlayer(actorName, in, out, info.ioConfig, timeKeeper))
+        .withDeploy(Deploy(scope = RemoteScope(address)))
+        //.withDispatcher("prio-dispatcher"), actorName)
+        )
+      playerNumber += 1
+      players += player
+      player ! Player.Connect
+      player
     }
   }
 }

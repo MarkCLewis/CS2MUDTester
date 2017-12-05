@@ -8,13 +8,15 @@ import akka.actor.ActorRef
 import akka.actor.actorRef2Scala
 import utility.Response
 import utility.ResponseReport
+import utility.ActorMessages
+
+import com.typesafe.config.ConfigFactory
 
 object TimeKeeper {
   case class ReceiveResponse(response: Response)
   case object SendTestReport
-  case class EndStressTest(info: StressTestInfo)
   case class ChangeNumPlayers(n: Int)
-  case object KillActor
+  case class DebugMessage(message: String)
 
   def apply(info: StressTestInfo, stressTestManager: ActorRef): TimeKeeper = {
     new TimeKeeper(info, stressTestManager)
@@ -24,7 +26,7 @@ object TimeKeeper {
 class TimeKeeper private (private val info: StressTestInfo,
     private val stressTestManager: ActorRef) extends Actor {
   implicit private val ec = context.system.dispatcher
-  private val schedule = context.system.scheduler.schedule(1 second, 3 seconds, self, TimeKeeper.SendTestReport)
+  private val schedule = context.system.scheduler.schedule(1 second, 500 millis, self, TimeKeeper.SendTestReport)
 
   private val responses = Buffer[Response]()
   private var numPlayers = 0
@@ -40,18 +42,12 @@ class TimeKeeper private (private val info: StressTestInfo,
         }
       }
     }
-    case TimeKeeper.EndStressTest(info) => {
-      schedule.cancel()
-      aggregateResponseTime() match {
-        case None =>
-        case Some(report) => {
-          stressTestManager ! StressTestManager.ReceiveTestReport(info, report)
-          responses.clear()
-        }
-      }
+    case ActorMessages.EndStressTest(info) => {
+      stressTestManager ! StressTestManager.GenerateReportPlot(info, aggregateResponseTime())
+      context.stop(self)
     }
     case TimeKeeper.ChangeNumPlayers(n) => numPlayers += n
-    case TimeKeeper.KillActor => context.stop(self)
+    case TimeKeeper.DebugMessage(message) => info.out.println(message)
     case _ =>
   }
 

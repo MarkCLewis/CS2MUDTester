@@ -17,13 +17,21 @@ import akka.remote.RemoteScope
 import utility.IOConfig
 import utility.ResponseReport
 
-case class StressTestInfo(sock: Socket, in: BufferedReader, out: PrintStream, host: String, port: Int, ioConfig: IOConfig)
+import swiftvis2.plotting.Plot
+import swiftvis2.plotting.renderer.SVGRenderer
+import swiftvis2.plotting.PlotDoubleSeries
+import utility.ActorMessages
+
+import com.typesafe.config.ConfigFactory
+
+case class StressTestInfo(sock: Socket, in: BufferedReader, out: PrintStream, host: String, port: Int, ioConfig: IOConfig, outputFile: String)
 
 object StressTestManager {
   case class EnqueueStressTestInfo(info: StressTestInfo)
   case object RunNextStressTest
   case class EndStressTest(info: StressTestInfo, timeKeeper: ActorRef, playerManagers: Array[ActorRef])
   case class ReceiveTestReport(info: StressTestInfo, report: ResponseReport)
+  case class GenerateReportPlot(info: StressTestInfo, report: Option[ResponseReport])
 
   def apply(): StressTestManager = {
     new StressTestManager()
@@ -31,7 +39,7 @@ object StressTestManager {
 }
 
 class StressTestManager private () extends Actor {
-  implicit private val ec = context.system.dispatcher
+  implicit private val ec = context.system.dispatcher //s.lookup("prio-dispatcher")
   context.system.scheduler.schedule(1 second, 5 seconds, self, StressTestManager.RunNextStressTest)
 
   private val nodes = "0 1 2 3 4 5 6 7 8".split(" ").map("131.194.71.13" + _.trim)
@@ -44,7 +52,7 @@ class StressTestManager private () extends Actor {
   def receive = {
     case StressTestManager.EnqueueStressTestInfo(info) => {
       tests.enqueue(info)
-      if (tests.length > 1) info.out.println("Test enqueued.\n" + (tests.length - 1) + " tests ahead.")
+      /*if (tests.length > 1)*/ info.out.println("Test enqueued.\n" + (tests.length - 1) + " tests ahead.")
     }
     case StressTestManager.RunNextStressTest => {
       if (tests.size > 0 && !testing) {
@@ -53,33 +61,46 @@ class StressTestManager private () extends Actor {
       }
     }
     case StressTestManager.EndStressTest(info, timeKeeper, playerManagers) => {
-      playerManagers.foreach(_ ! StressPlayerManager.EndStressTest)
-      timeKeeper ! TimeKeeper.EndStressTest(info)
-      playerManagers.foreach(_ ! StressPlayerManager.KillActor)
-      timeKeeper ! TimeKeeper.KillActor
-      info.sock.close()
-      info.out.println("End stress test.")
-      testing = false
+      timeKeeper ! ActorMessages.EndStressTest(info)
+      playerManagers.foreach(_ ! ActorMessages.EndStressTest)
     }
-    case StressTestManager.ReceiveTestReport(info, report) => {
-      reports += report
-      info.out.println(report.numPlayers + " actors, average response time: " + report.average / 1000000.0 + " ms.")
+    case StressTestManager.ReceiveTestReport(info, report) => enqueueReport(info, report)
+    case StressTestManager.GenerateReportPlot(info, report) => {
+      report match {
+        case Some(r) => enqueueReport(info, r)
+        case None =>
+      }
+      generatePlotReport(info)
+      info.out.println("End stress test.")
+      info.out.println("To display results plot, enter:\"display " + info.outputFile)
+      info.sock.close()
+      testing = false
     }
     case _ =>
   }
 
   private def stressTest(info: StressTestInfo) {
     reports.clear()
+    val sock = new Socket(info.host, info.port)
     info.out.println("Running stress test.\nRunning for " + testDuration + ".")
-    val timeKeeper = context.system.actorOf(Props(TimeKeeper(info, self)), "TimeKeeper")
+    val timeKeeper = context.system.actorOf(Props(TimeKeeper(info, self)))
     val playerManagers = nodes.map { ip =>
       val address = Address("akka.tcp", "MUDStressTest", ip, 5150)
-      context.system.actorOf(Props(StressPlayerManager(info, timeKeeper, ip)).withDeploy(Deploy(scope = RemoteScope(address))))
+      context.system.actorOf(Props(StressPlayerManager(info, timeKeeper, ip))
+        .withDeploy(Deploy(scope = RemoteScope(address))))
     }
     context.system.scheduler.scheduleOnce(testDuration, self, StressTestManager.EndStressTest(info, timeKeeper, playerManagers))
   }
 
-  private def assemblePlot(info: StressTestInfo) {
+  private def enqueueReport(info: StressTestInfo, report: ResponseReport) {
+    reports += report
+    info.out.println(report.numPlayers + " actors, average response time: " + report.average / 1000000.0 + " ms.")
+  }
 
+  private def generatePlotReport(info: StressTestInfo) = {
+    val xs = reports.map(_.numPlayers).toSeq
+    val ys = reports.map(_.average / 1000000.0).toSeq
+    val plot = Plot.scatterPlot(xs, ys, "Average Response Times by Number of Actors", "Number of Actors", "Average Response Time (ns)")
+    SVGRenderer(plot, info.outputFile, 600, 500)
   }
 }

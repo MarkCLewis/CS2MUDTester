@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+<rect x="0.0" y="0.0" width="600.0" height="500.0" fill="#ffffff" />
+<rect x="67.5" y="50.0" width="520.5" height="382.5" stroke="#000000" stroke-width="1.0"  fill="none" />
+<ellipse cx="67.5" cy="407.5968295270994" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="96.41666666666667" cy="432.5" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="125.33333333333334" cy="401.95584457241154" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="154.25" cy="248.1609700384875" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="183.16666666666669" cy="352.9719245511463" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="241.0" cy="238.56165762805952" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="269.91666666666663" cy="390.0961621263945" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="298.83333333333337" cy="255.52601504858592" rx="5.0" ry="5.000000000000014" fill="#000000" />
+<ellipse cx="327.75" cy="355.81201054814164" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="356.6666666666667" cy="199.9911178948665" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="385.5833333333333" cy="297.61373896342707" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="414.5" cy="325.56017146420885" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="443.4166666666667" cy="316.78509930688267" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="465.9074074074074" cy="296.32910338533793" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="501.25" cy="205.28549594295026" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="530.1666666666667" cy="142.5327649897024" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="559.0833333333333" cy="50.0" rx="5.0" ry="5.0" fill="#000000" />
+<ellipse cx="588.0" cy="175.99302669149023" rx="5.0" ry="5.0" fill="#000000" />
+<text x="0.0" y="6.75" font-family="Ariel" font-size="20.25px" text-anchor="middle" transform="translate(327.75, 489.875) rotate(0.0)">Number of Actors</text>
+<line x1="77.13888888888889" y1="427.775" x2="77.13888888888889" y2="437.225" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="start" transform="translate(77.13888888888889, 437.225) rotate(90.0)">300.0</text>
+<line x1="173.52777777777777" y1="427.775" x2="173.52777777777777" y2="437.225" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="start" transform="translate(173.52777777777777, 437.225) rotate(90.0)">600.0</text>
+<line x1="269.91666666666663" y1="427.775" x2="269.91666666666663" y2="437.225" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="start" transform="translate(269.91666666666663, 437.225) rotate(90.0)">900.0</text>
+<line x1="366.30555555555554" y1="427.775" x2="366.30555555555554" y2="437.225" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="start" transform="translate(366.30555555555554, 437.225) rotate(90.0)">1200.0</text>
+<line x1="462.69444444444446" y1="427.775" x2="462.69444444444446" y2="437.225" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="start" transform="translate(462.69444444444446, 437.225) rotate(90.0)">1500.0</text>
+<line x1="559.0833333333333" y1="427.775" x2="559.0833333333333" y2="437.225" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="start" transform="translate(559.0833333333333, 437.225) rotate(90.0)">1800.0</text>
+<text x="0.0" y="6.75" font-family="Ariel" font-size="20.25px" text-anchor="middle" transform="translate(10.125, 241.25) rotate(-90.0)">Average Response Time (ns)</text>
+<line x1="72.225" y1="375.0550839964401" x2="62.775" y2="375.0550839964401" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="end" transform="translate(62.775, 375.0550839964401) rotate(0.0)">200.0</text>
+<line x1="72.225" y1="290.2181259247811" x2="62.775" y2="290.2181259247811" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="end" transform="translate(62.775, 290.2181259247811) rotate(0.0)">400.0</text>
+<line x1="72.225" y1="205.38116785312207" x2="62.775" y2="205.38116785312207" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="end" transform="translate(62.775, 205.38116785312207) rotate(0.0)">600.0</text>
+<line x1="72.225" y1="120.54420978146305" x2="62.775" y2="120.54420978146305" stroke="#000000" stroke-width="1.0" />
+<text x="0.0" y="5.25" font-family="Ariel" font-size="15.75px" text-anchor="end" transform="translate(62.775, 120.54420978146305) rotate(0.0)">800.0</text>
+<text x="0.0" y="9.523809523809524" font-family="Ariel" font-size="28.571428571428573px" text-anchor="middle" transform="translate(300.0, 25.0) rotate(0.0)">Average Response Times by Number of Actors</text>
+</svg>

@@ -16,30 +16,28 @@ import utility.IOConfig
 import utility.Player
 import utility.Response
 import akka.actor.Cancellable
+import utility.ActorMessages
+import com.typesafe.config.ConfigFactory
 
 object StressPlayer {
   case object TakeAction
-  case object EndStressTest
-  case object KillActor
 
   def apply(name: String,
     in: BufferedReader,
     out: PrintStream,
     config: IOConfig,
-    playerManager: ActorRef,
     timeKeeper: ActorRef): StressPlayer = {
-    new StressPlayer(name, in, out, config, playerManager, timeKeeper)
+    new StressPlayer(name, in, out, config, timeKeeper)
   }
 }
 
 class StressPlayer private (private val name: String,
     private val in: BufferedReader,
     private val out: PrintStream,
-    private val config: IOConfig,
-    private val playerManager: ActorRef,
+    private val ioConfig: IOConfig,
     private val timeKeeper: ActorRef) extends Actor {
-
   implicit val ec = context.system.dispatcher
+
   protected var gs = Player.GameState("", Nil, Nil, Nil, Nil)
   private var commandCount = 0
   private val responses = Buffer[Response]()
@@ -50,38 +48,37 @@ class StressPlayer private (private val name: String,
     case Player.Connect => {
       connect()
       implicit val ec = context.system.dispatcher
-      schedule = context.system.scheduler.schedule(1 seconds, 1 second, self, StressPlayer.TakeAction)
+      schedule = context.system.scheduler.schedule(1 seconds, 500 millis, self, StressPlayer.TakeAction)
     }
-    case Player.KillPlayer => disconnect()
     case StressPlayer.TakeAction => {
       if (!dead) takeAction() match {
         case None => disconnect()
         case Some(r) => {
-          if (r.result && util.Random.nextInt(1000) < 1) timeKeeper ! TimeKeeper.ReceiveResponse(r)
+          if (r.result && util.Random.nextInt(500) < 1) timeKeeper ! TimeKeeper.ReceiveResponse(r)
         }
       }
     }
-    case StressPlayer.EndStressTest => schedule.cancel()
-    case StressPlayer.KillActor => disconnect()
+    case ActorMessages.EndStressTest => disconnect()
     case _ =>
   }
 
   private def connect() {
+    in.readLine()
     out.println(name)
-    Command.readToMatch(in, config.roomOutput) match {
+    Command.readToMatch(in, ioConfig.roomOutput) match {
       case Left(message) => println(message)
       case Right(m) =>
-        val name = config.roomName.parseSingle(m)
-        val exits = config.exits.parseSeq(m)
-        val items = config.items.parseSeq(m)
-        val occupants = config.occupants.map(_.parseSeq(m)).getOrElse(Seq.empty)
+        val name = ioConfig.roomName.parseSingle(m)
+        val exits = ioConfig.exits.parseSeq(m)
+        val items = ioConfig.items.parseSeq(m)
+        val occupants = ioConfig.occupants.map(_.parseSeq(m)).getOrElse(Seq.empty)
         gs = gs.copy(roomName = name, players = occupants, roomItems = items, exits = exits)
     }
   }
 
   private def disconnect() {
     dead = true
-    config.exitCommand().runCommand(out, in, config, gs)
+    ioConfig.exitCommand().runCommand(out, in, ioConfig, gs)
     context.stop(self)
   }
 
@@ -93,23 +90,30 @@ class StressPlayer private (private val name: String,
     //}
     //else {
     // TODO should StressPlayers just move around or perform other commands as well?
-    val command = config.randomValidMovement(gs)
-    val startTime: Long = System.nanoTime()
-    command.runCommand(out, in, config, gs) match {
-      case Left(message) =>
-        println(message)
-        val stopTime: Long = System.nanoTime()
-        Debug.playerDebugPrint(1, "Unsuccessfull " + command.name + " command.")
-        Debug.roomDebugPrint(1, gs.roomName, "Unsuccessfull " + command.name + " command in " + gs.roomName + " room.")
-        Some(Response(stopTime - startTime, false))
-      //None
-      case Right(state) =>
-        val stopTime: Long = System.nanoTime()
-        Debug.playerDebugPrint(1, "Successfull " + command.name + " command.")
-        Debug.roomDebugPrint(1, gs.roomName, "Successfull " + command.name + " command in " + gs.roomName + " room.")
-        gs = state
-        Some(Response(stopTime - startTime, true))
+    try {
+      val command = ioConfig.randomValidMovement(gs)
+      val startTime: Long = System.nanoTime()
+      command.runCommand(out, in, ioConfig, gs) match {
+        case Left(message) =>
+          timeKeeper ! TimeKeeper.DebugMessage(message)
+          val stopTime: Long = System.nanoTime()
+          Debug.playerDebugPrint(1, "Unsuccessfull " + command.name + " command.")
+          Debug.roomDebugPrint(1, gs.roomName, "Unsuccessfull " + command.name + " command in " + gs.roomName + " room.")
+          Some(Response(stopTime - startTime, false))
+        //None
+        case Right(state) =>
+          val stopTime: Long = System.nanoTime()
+          Debug.playerDebugPrint(1, "Successfull " + command.name + " command.")
+          Debug.roomDebugPrint(1, gs.roomName, "Successfull " + command.name + " command in " + gs.roomName + " room.")
+          gs = state
+          Some(Response(stopTime - startTime, true))
+      }
+    } catch {
+      case e: java.net.SocketException => {
+        timeKeeper ! ActorMessages.EmergencyShutdown(None)
+        context.stop(self)
+        None
+      }
     }
-    //}
   }
 }
