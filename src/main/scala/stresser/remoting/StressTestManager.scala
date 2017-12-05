@@ -64,7 +64,9 @@ class StressTestManager private () extends Actor {
       timeKeeper ! ActorMessages.EndStressTest(info)
       playerManagers.foreach(_ ! ActorMessages.EndStressTest)
     }
-    case StressTestManager.ReceiveTestReport(info, report) => enqueueReport(info, report)
+    case StressTestManager.ReceiveTestReport(info, report) => {
+      enqueueReport(info, report)
+    }
     case StressTestManager.GenerateReportPlot(info, report) => {
       report match {
         case Some(r) => enqueueReport(info, r)
@@ -72,11 +74,21 @@ class StressTestManager private () extends Actor {
       }
       generatePlotReport(info)
       info.out.println("End stress test.")
-      info.out.println("To display results plot, enter:\"display " + info.outputFile)
+      info.out.println("To display results plot, enter: ssh -Y pandora00 \"display " + info.outputFile + "\"")
       info.sock.close()
+      reports.clear()
       testing = false
     }
-    case _ =>
+    case ActorMessages.EmergencyShutdown(info) => {
+      context.children.foreach { child =>
+        if (child.compareTo(self) != 0) context.stop(child)
+      }
+      info.out.println("Emergency shutdown.")
+      info.sock.close()
+      reports.clear()
+      testing = false
+    }
+    case _ => 
   }
 
   private def stressTest(info: StressTestInfo) {
@@ -86,7 +98,7 @@ class StressTestManager private () extends Actor {
     val timeKeeper = context.system.actorOf(Props(TimeKeeper(info, self)))
     val playerManagers = nodes.map { ip =>
       val address = Address("akka.tcp", "MUDStressTest", ip, 5150)
-      context.system.actorOf(Props(StressPlayerManager(info, timeKeeper, ip))
+      context.system.actorOf(Props(StressPlayerManager(info, self, timeKeeper, ip))
         .withDeploy(Deploy(scope = RemoteScope(address))))
     }
     context.system.scheduler.scheduleOnce(testDuration, self, StressTestManager.EndStressTest(info, timeKeeper, playerManagers))
@@ -98,6 +110,7 @@ class StressTestManager private () extends Actor {
   }
 
   private def generatePlotReport(info: StressTestInfo) = {
+    (new java.io.File(new java.io.File(info.outputFile).getParent)).mkdirs()
     val xs = reports.map(_.numPlayers).toSeq
     val ys = reports.map(_.average / 1000000.0).toSeq
     val plot = Plot.scatterPlot(xs, ys, "Average Response Times by Number of Actors", "Number of Actors", "Average Response Time (ns)")

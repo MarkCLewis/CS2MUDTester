@@ -51,7 +51,7 @@ object MUDStress extends App {
           val dummy = new Socket(host, port)
           dummy.close()
 
-          testManager ! StressTestManager.EnqueueStressTestInfo(new StressTestInfo(sock, in, out, host, port, ioConfig, "/tmp/CS2MUDTesterOutput/" + outputFile))
+          testManager ! StressTestManager.EnqueueStressTestInfo(new StressTestInfo(sock, in, out, host, port, ioConfig, "/tmp/CS2MUDTesterOutput/" + outputFile + ".svg"))
         } catch {
           case e: java.lang.NumberFormatException => {
             out.println(e.getMessage)

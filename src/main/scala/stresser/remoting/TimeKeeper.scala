@@ -23,7 +23,7 @@ object TimeKeeper {
   }
 }
 
-class TimeKeeper private (private val info: StressTestInfo,
+class TimeKeeper private (private val _info: StressTestInfo,
     private val stressTestManager: ActorRef) extends Actor {
   implicit private val ec = context.system.dispatcher
   private val schedule = context.system.scheduler.schedule(1 second, 500 millis, self, TimeKeeper.SendTestReport)
@@ -37,7 +37,7 @@ class TimeKeeper private (private val info: StressTestInfo,
       aggregateResponseTime() match {
         case None =>
         case Some(report) => {
-          stressTestManager ! StressTestManager.ReceiveTestReport(info, report)
+          stressTestManager ! StressTestManager.ReceiveTestReport(_info, report)
           responses.clear()
         }
       }
@@ -47,7 +47,7 @@ class TimeKeeper private (private val info: StressTestInfo,
       context.stop(self)
     }
     case TimeKeeper.ChangeNumPlayers(n) => numPlayers += n
-    case TimeKeeper.DebugMessage(message) => info.out.println(message)
+    case TimeKeeper.DebugMessage(message) => _info.out.println(message)
     case _ =>
   }
 
