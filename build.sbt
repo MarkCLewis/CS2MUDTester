@@ -4,12 +4,12 @@ version := "1.0"
 
 scalaVersion := "2.12.3"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.4"
+libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.8"
 libraryDependencies += "org.scala-lang.modules" % "scala-xml_2.12" % "1.0.6" excludeAll ExclusionRule(name = "embrace")
-libraryDependencies += "com.typesafe.akka" %% "akka-cluster" % "2.5.6"
-libraryDependencies += "com.typesafe.akka" % "akka-cluster-metrics_2.12" % "2.5.6"
-libraryDependencies += "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.5.3"
-libraryDependencies += "com.typesafe.akka" %% "akka-remote" % "$akka.version$"
+libraryDependencies += "com.typesafe.akka" %% "akka-cluster" % "2.5.8"
+libraryDependencies += "com.typesafe.akka" % "akka-cluster-metrics_2.12" % "2.5.8"
+libraryDependencies += "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.5.8"
+libraryDependencies += "com.typesafe.akka" %% "akka-remote" % "2.5.8"
 
 addCommandAlias("pandora00", "runMain stresserclustering.MUDStress pandora00")
 addCommandAlias("pandora01", "runMain stresserclustering.MUDStress pandora01")
